@@ -1,0 +1,12 @@
+.DS_Store
+.idea/
+.vscode/
+
+backend/target/
+frontend/.tanstack/
+frontend/.vinxi/
+frontend/dist/
+frontend/node_modules/
+
+.env
+.env.local
