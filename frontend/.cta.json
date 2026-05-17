@@ -3,7 +3,7 @@
   "mode": "file-router",
   "typescript": true,
   "packageManager": "npm",
-  "includeExamples": true,
+  "includeExamples": false,
   "tailwind": true,
   "addOnOptions": {},
   "envVarValues": {},
@@ -11,12 +11,12 @@
   "install": true,
   "routerOnly": false,
   "version": 1,
-  "framework": "solid",
+  "framework": "react",
   "chosenAddOns": [
     "biome",
     "nitro",
     "form",
-    "tanstack-query",
-    "solid-ui"
+    "table",
+    "tanstack-query"
   ]
 }

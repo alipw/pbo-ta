@@ -29,6 +29,12 @@ public class AuthController {
         return result.user();
     }
 
+    @PostMapping("/logout")
+    public void logout(HttpServletResponse response) {
+        ResponseCookie cookie = authService.createLogoutCookie();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
     @GetMapping("/me")
     public AuthUserResponse me(@AuthenticationPrincipal AuthenticatedUser user) {
         return AuthUserResponse.from(user);

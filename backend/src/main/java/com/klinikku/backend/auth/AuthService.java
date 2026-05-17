@@ -57,4 +57,14 @@ public class AuthService {
                 .maxAge(sessionTtl)
                 .build();
     }
+
+    public ResponseCookie createLogoutCookie() {
+        return ResponseCookie.from(sessionCookieName, "")
+                .httpOnly(true)
+                .secure(sessionCookieSecure)
+                .sameSite(sessionCookieSameSite)
+                .path("/")
+                .maxAge(Duration.ZERO)
+                .build();
+    }
 }

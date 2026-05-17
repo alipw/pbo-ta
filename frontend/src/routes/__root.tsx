@@ -1,40 +1,65 @@
 import {
   HeadContent,
-  Outlet,
   Scripts,
   createRootRouteWithContext,
-} from '@tanstack/solid-router'
-import { TanStackRouterDevtools } from '@tanstack/solid-router-devtools'
+} from '@tanstack/react-router'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { TanStackDevtools } from '@tanstack/react-devtools'
 
-import '@fontsource/inter/400.css'
+import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
-import { HydrationScript } from 'solid-js/web'
-import { Suspense } from 'solid-js'
+import appCss from '../styles.css?url'
 
-import Header from '../components/Header'
+import type { QueryClient } from '@tanstack/react-query'
 
-import styleCss from '../styles.css?url'
+interface MyRouterContext {
+  queryClient: QueryClient
+}
 
-export const Route = createRootRouteWithContext()({
+export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
-    links: [{ rel: 'stylesheet', href: styleCss }],
+    meta: [
+      {
+        charSet: 'utf-8',
+      },
+      {
+        name: 'viewport',
+        content: 'width=device-width, initial-scale=1',
+      },
+      {
+        title: 'TanStack Start Starter',
+      },
+    ],
+    links: [
+      {
+        rel: 'stylesheet',
+        href: appCss,
+      },
+    ],
   }),
-  shellComponent: RootComponent,
+  shellComponent: RootDocument,
 })
 
-function RootComponent() {
+function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html>
+    <html lang="en">
       <head>
-        <HydrationScript />
         <HeadContent />
       </head>
       <body>
-        <Suspense>
-          <Header />
-          <Outlet />
-          <TanStackRouterDevtools />
-        </Suspense>
+        {children}
+        <TanStackDevtools
+          config={{
+            position: 'bottom-right',
+          }}
+          plugins={[
+            {
+              name: 'Tanstack Router',
+              render: <TanStackRouterDevtoolsPanel />,
+            },
+            TanStackQueryDevtools,
+          ]}
+        />
         <Scripts />
       </body>
     </html>
