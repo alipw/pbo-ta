@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/appointments")
+@RequestMapping("/api/v1/admin/appointments")
 public class AppointmentController {
 
     private final AppointmentService appointmentService;

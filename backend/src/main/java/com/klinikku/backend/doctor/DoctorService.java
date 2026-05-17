@@ -4,6 +4,7 @@ import com.klinikku.backend.common.ResourceNotFoundException;
 import com.klinikku.backend.user.UserRole;
 import java.util.List;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,9 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class DoctorService {
 
     private final DoctorRepository doctorRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public DoctorService(DoctorRepository doctorRepository) {
+    public DoctorService(DoctorRepository doctorRepository, PasswordEncoder passwordEncoder) {
         this.doctorRepository = doctorRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -35,7 +38,7 @@ public class DoctorService {
         doctor.setRole(UserRole.DOCTOR);
         doctor.setFullName(request.fullName());
         doctor.setEmail(request.email());
-        doctor.setPasswordHash(request.passwordHash());
+        doctor.setPasswordHash(passwordEncoder.encode(request.password()));
         doctor.setSpecialization(request.specialization());
         doctor.setLicenseNumber(request.licenseNumber());
 

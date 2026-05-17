@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/schedules")
+@RequestMapping("/api/v1/admin/schedules")
 public class ScheduleController {
 
     private final ScheduleService scheduleService;

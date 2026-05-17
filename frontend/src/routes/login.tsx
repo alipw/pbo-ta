@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { hasSessionCookie } from "@/lib/auth";
+import { type AuthUser, getCurrentUser, roleHomePath } from "@/lib/auth";
 
 const API_BASE_URL =
 	import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
@@ -26,10 +26,10 @@ type LoginForm = {
 
 export const Route = createFileRoute("/login")({
 	beforeLoad: async () => {
-		const isAuthenticated = await hasSessionCookie();
+		const user = await getCurrentUser();
 
-		if (isAuthenticated) {
-			throw redirect({ to: "/" });
+		if (user) {
+			throw redirect({ to: roleHomePath[user.role] });
 		}
 	},
 	component: LoginPage,
@@ -61,7 +61,9 @@ function LoginPage() {
 				return;
 			}
 
-			await navigate({ to: "/" });
+			const user = (await response.json()) as AuthUser;
+
+			await navigate({ to: roleHomePath[user.role] });
 		},
 	});
 
@@ -97,8 +99,8 @@ function LoginPage() {
 									value.trim().length === 0 ? "Email wajib diisi." : undefined,
 							}}
 						>
-								{(field) => {
-									const errorMessage = field.state.meta.errors.at(0);
+							{(field) => {
+								const errorMessage = field.state.meta.errors.at(0);
 
 								return (
 									<div className="space-y-1.5">
@@ -129,8 +131,8 @@ function LoginPage() {
 									value.length === 0 ? "Password wajib diisi." : undefined,
 							}}
 						>
-								{(field) => {
-									const errorMessage = field.state.meta.errors.at(0);
+							{(field) => {
+								const errorMessage = field.state.meta.errors.at(0);
 
 								return (
 									<div className="space-y-1.5">

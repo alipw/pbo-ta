@@ -11,8 +11,8 @@ public record DoctorRequest(
         @Email(message = "Doctor email must be valid")
         @NotBlank(message = "Doctor email is required")
         String email,
-        @NotBlank(message = "Password hash is required")
-        String passwordHash,
+        @NotBlank(message = "Password is required")
+        String password,
         @NotBlank(message = "Doctor specialization is required")
         String specialization,
         @NotBlank(message = "Doctor license number is required")
