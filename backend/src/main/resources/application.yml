@@ -27,3 +27,9 @@ springdoc:
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  auth:
+    jwt-secret: ${APP_AUTH_JWT_SECRET:dev-only-change-this-secret-before-production}
+    session-cookie-name: ${APP_AUTH_SESSION_COOKIE_NAME:session}
+    session-cookie-secure: ${APP_AUTH_SESSION_COOKIE_SECURE:false}
+    session-cookie-same-site: ${APP_AUTH_SESSION_COOKIE_SAME_SITE:Lax}
+    session-ttl: ${APP_AUTH_SESSION_TTL:PT8H}
