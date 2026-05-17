@@ -1,6 +1,7 @@
 package com.klinikku.backend.health;
 
 import com.klinikku.backend.payment.PaymentMethodCatalog;
+
 import java.time.Instant;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +14,8 @@ public class HealthController {
 
     @GetMapping
     public HealthResponse getHealth() {
+
+        // throw new ResourceNotFoundException("me", (long) 1);
         return new HealthResponse(
                 "klinikku-backend",
                 "UP",
