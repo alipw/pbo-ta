@@ -1,14 +1,15 @@
 package com.klinikku.backend.appointment;
 
 import com.klinikku.backend.common.ResourceNotFoundException;
+import com.klinikku.backend.doctor.Doctor;
 import com.klinikku.backend.doctor.DoctorService;
+import com.klinikku.backend.patient.Patient;
 import com.klinikku.backend.patient.PatientService;
 import com.klinikku.backend.schedule.DoctorSchedule;
+import com.klinikku.backend.schedule.ScheduleRequest;
 import com.klinikku.backend.schedule.ScheduleService;
-import com.klinikku.backend.schedule.ScheduleStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +34,21 @@ public class AppointmentService {
 
     @Transactional(readOnly = true)
     public List<AppointmentResponse> findAll() {
-        return appointmentRepository.findAll(Sort.by(Sort.Direction.DESC, "bookedAt")).stream()
+        return findAll(null, null, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AppointmentResponse> findAll(
+            Long patientId,
+            Long doctorId,
+            AppointmentStatus status,
+            OffsetDateTime from,
+            OffsetDateTime to) {
+        if (from != null && to != null && to.isBefore(from)) {
+            throw new IllegalArgumentException("Appointment filter end must be after start");
+        }
+
+        return appointmentRepository.findByFilters(patientId, doctorId, status, from, to).stream()
                 .map(AppointmentResponse::from)
                 .toList();
     }
@@ -44,25 +59,67 @@ public class AppointmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", appointmentId));
     }
 
+    @Transactional(readOnly = true)
+    public AppointmentResponse findResponseById(Long appointmentId) {
+        return AppointmentResponse.from(findById(appointmentId));
+    }
+
     @Transactional
     public AppointmentResponse create(AppointmentRequest request) {
         Appointment appointment = new Appointment();
-        appointment.setPatient(patientService.findById(request.patientId()));
-        appointment.setDoctor(doctorService.findById(request.doctorId()));
-        appointment.setBookedAt(request.bookedAt() == null ? OffsetDateTime.now() : request.bookedAt());
+        applyRequest(appointment, request);
+
+        return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    @Transactional
+    public AppointmentResponse update(Long appointmentId, AppointmentRequest request) {
+        Appointment appointment = findById(appointmentId);
+        applyRequest(appointment, request);
+
+        return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    @Transactional
+    public void deleteById(Long appointmentId) {
+        Appointment appointment = findById(appointmentId);
+        DoctorSchedule schedule = appointment.getSchedule();
+
+        appointmentRepository.delete(appointment);
+        if (schedule != null) {
+            appointmentRepository.flush();
+            scheduleService.deleteBookedSlot(schedule);
+        }
+    }
+
+    private void applyRequest(Appointment appointment, AppointmentRequest request) {
+        Patient patient = patientService.findById(request.patientId());
+        Doctor doctor = doctorService.findById(request.doctorId());
+        DoctorSchedule schedule = upsertAppointmentSchedule(appointment, request);
+
+        appointment.setPatient(patient);
+        appointment.setDoctor(doctor);
+        appointment.setSchedule(schedule);
+        // The schema still has bookedAt, but the appointment time now comes from the linked schedule.
+        appointment.setBookedAt(schedule.getStartsAt());
         appointment.setStatus(request.status() == null ? AppointmentStatus.MENUNGGU : request.status());
         appointment.setComplaint(request.complaint());
         appointment.setCancelledReason(request.cancelledReason());
+    }
 
-        if (request.scheduleId() != null) {
-            DoctorSchedule schedule = scheduleService.findById(request.scheduleId());
-            if (!schedule.getDoctor().getId().equals(request.doctorId())) {
-                throw new IllegalArgumentException("Schedule doctor does not match appointment doctor");
-            }
-            schedule.setStatus(ScheduleStatus.BOOKED);
-            appointment.setSchedule(schedule);
+    private DoctorSchedule upsertAppointmentSchedule(Appointment appointment, AppointmentRequest request) {
+        ScheduleRequest scheduleRequest = new ScheduleRequest(
+                request.doctorId(),
+                request.startsAt(),
+                request.endsAt(),
+                request.room(),
+                null,
+                request.scheduleNotes());
+
+        if (appointment.getSchedule() == null) {
+            return scheduleService.createBookedSlot(scheduleRequest);
         }
 
-        return AppointmentResponse.from(appointmentRepository.save(appointment));
+        return scheduleService.updateBookedSlot(appointment.getSchedule().getId(), scheduleRequest);
     }
 }

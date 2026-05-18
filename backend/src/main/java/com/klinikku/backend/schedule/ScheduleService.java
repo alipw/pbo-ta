@@ -47,18 +47,41 @@ public class ScheduleService {
 
     @Transactional
     public ScheduleResponse create(ScheduleRequest request) {
-        DoctorSchedule schedule = new DoctorSchedule();
-        applyRequest(schedule, request);
-
-        return ScheduleResponse.from(scheduleRepository.save(schedule));
+        return ScheduleResponse.from(createSchedule(request));
     }
 
     @Transactional
     public ScheduleResponse update(Long scheduleId, ScheduleRequest request) {
+        return ScheduleResponse.from(updateSchedule(scheduleId, request));
+    }
+
+    @Transactional
+    public DoctorSchedule createBookedSlot(ScheduleRequest request) {
+        return createSchedule(asBookedRequest(request));
+    }
+
+    @Transactional
+    public DoctorSchedule updateBookedSlot(Long scheduleId, ScheduleRequest request) {
+        return updateSchedule(scheduleId, asBookedRequest(request));
+    }
+
+    @Transactional
+    public void deleteBookedSlot(DoctorSchedule schedule) {
+        scheduleRepository.delete(schedule);
+    }
+
+    private DoctorSchedule createSchedule(ScheduleRequest request) {
+        DoctorSchedule schedule = new DoctorSchedule();
+        applyRequest(schedule, request);
+
+        return scheduleRepository.save(schedule);
+    }
+
+    private DoctorSchedule updateSchedule(Long scheduleId, ScheduleRequest request) {
         DoctorSchedule schedule = findById(scheduleId);
         applyRequest(schedule, request);
 
-        return ScheduleResponse.from(scheduleRepository.save(schedule));
+        return scheduleRepository.save(schedule);
     }
 
     @Transactional
@@ -89,6 +112,16 @@ public class ScheduleService {
         schedule.setRoom(request.room());
         schedule.setStatus(status);
         schedule.setNotes(request.notes());
+    }
+
+    private ScheduleRequest asBookedRequest(ScheduleRequest request) {
+        return new ScheduleRequest(
+                request.doctorId(),
+                request.startsAt(),
+                request.endsAt(),
+                request.room(),
+                ScheduleStatus.BOOKED,
+                request.notes());
     }
 
     private void validateRange(OffsetDateTime startsAt, OffsetDateTime endsAt) {
