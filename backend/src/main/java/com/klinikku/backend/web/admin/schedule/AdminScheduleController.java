@@ -3,13 +3,20 @@ package com.klinikku.backend.web.admin.schedule;
 import com.klinikku.backend.schedule.ScheduleRequest;
 import com.klinikku.backend.schedule.ScheduleResponse;
 import com.klinikku.backend.schedule.ScheduleService;
+import com.klinikku.backend.schedule.ScheduleStatus;
 import jakarta.validation.Valid;
+import java.time.OffsetDateTime;
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,13 +31,30 @@ public class AdminScheduleController {
     }
 
     @GetMapping
-    public List<ScheduleResponse> listSchedules() {
-        return scheduleService.findAll();
+    public List<ScheduleResponse> listSchedules(
+            @RequestParam(required = false) Long doctorId,
+            @RequestParam(required = false) ScheduleStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        return scheduleService.findAll(doctorId, status, from, to);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ScheduleResponse createSchedule(@Valid @RequestBody ScheduleRequest request) {
         return scheduleService.create(request);
+    }
+
+    @PutMapping("/{scheduleId}")
+    public ScheduleResponse updateSchedule(
+            @PathVariable Long scheduleId,
+            @Valid @RequestBody ScheduleRequest request) {
+        return scheduleService.update(scheduleId, request);
+    }
+
+    @DeleteMapping("/{scheduleId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSchedule(@PathVariable Long scheduleId) {
+        scheduleService.deleteById(scheduleId);
     }
 }
