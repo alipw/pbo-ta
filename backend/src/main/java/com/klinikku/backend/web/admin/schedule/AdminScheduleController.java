@@ -1,5 +1,8 @@
-package com.klinikku.backend.schedule;
+package com.klinikku.backend.web.admin.schedule;
 
+import com.klinikku.backend.schedule.ScheduleRequest;
+import com.klinikku.backend.schedule.ScheduleResponse;
+import com.klinikku.backend.schedule.ScheduleService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -12,11 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/admin/schedules")
-public class ScheduleController {
+public class AdminScheduleController {
 
     private final ScheduleService scheduleService;
 
-    public ScheduleController(ScheduleService scheduleService) {
+    public AdminScheduleController(ScheduleService scheduleService) {
         this.scheduleService = scheduleService;
     }
 

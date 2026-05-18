@@ -1,5 +1,8 @@
-package com.klinikku.backend.payment;
+package com.klinikku.backend.web.admin.payment;
 
+import com.klinikku.backend.payment.PaymentRequest;
+import com.klinikku.backend.payment.PaymentResponse;
+import com.klinikku.backend.payment.PaymentService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -12,11 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/admin/payments")
-public class PaymentController {
+public class AdminPaymentController {
 
     private final PaymentService paymentService;
 
-    public PaymentController(PaymentService paymentService) {
+    public AdminPaymentController(PaymentService paymentService) {
         this.paymentService = paymentService;
     }
 

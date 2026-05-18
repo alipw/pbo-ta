@@ -1,5 +1,8 @@
-package com.klinikku.backend.appointment;
+package com.klinikku.backend.web.admin.appointment;
 
+import com.klinikku.backend.appointment.AppointmentRequest;
+import com.klinikku.backend.appointment.AppointmentResponse;
+import com.klinikku.backend.appointment.AppointmentService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -12,11 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/admin/appointments")
-public class AppointmentController {
+public class AdminAppointmentController {
 
     private final AppointmentService appointmentService;
 
-    public AppointmentController(AppointmentService appointmentService) {
+    public AdminAppointmentController(AppointmentService appointmentService) {
         this.appointmentService = appointmentService;
     }
 

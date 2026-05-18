@@ -1,5 +1,8 @@
-package com.klinikku.backend.medicalrecord;
+package com.klinikku.backend.web.admin.medicalrecord;
 
+import com.klinikku.backend.medicalrecord.MedicalRecordRequest;
+import com.klinikku.backend.medicalrecord.MedicalRecordResponse;
+import com.klinikku.backend.medicalrecord.MedicalRecordService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -12,11 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/admin/records")
-public class MedicalRecordController {
+public class AdminMedicalRecordController {
 
     private final MedicalRecordService medicalRecordService;
 
-    public MedicalRecordController(MedicalRecordService medicalRecordService) {
+    public AdminMedicalRecordController(MedicalRecordService medicalRecordService) {
         this.medicalRecordService = medicalRecordService;
     }
 
