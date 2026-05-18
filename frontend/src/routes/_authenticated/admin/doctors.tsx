@@ -16,12 +16,13 @@ import type { Doctor, DoctorRequest } from "@/api/admin/doctors/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -87,6 +88,7 @@ function AdminDoctorsPage() {
 		getCoreRowModel: getCoreRowModel(),
 	});
 	const createDoctorMutation = useCreateDoctorMutation();
+	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 	const [formError, setFormError] = useState("");
 	const [formSuccess, setFormSuccess] = useState("");
 
@@ -113,7 +115,7 @@ function AdminDoctorsPage() {
 	});
 
 	return (
-		<main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
+		<main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-10">
 			<section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
 				<div className="space-y-2">
 					<p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -128,7 +130,158 @@ function AdminDoctorsPage() {
 				</div>
 			</section>
 
-			<div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+			<div className="space-y-4">
+				<div className="flex justify-end">
+					<Dialog
+						open={isCreateDialogOpen}
+						onOpenChange={(open) => {
+							setIsCreateDialogOpen(open);
+
+							if (open) {
+								setFormError("");
+								setFormSuccess("");
+							}
+						}}
+					>
+						<DialogTrigger asChild>
+							<Button size="lg">
+								<Plus className="size-4" />
+								Tambah Dokter
+							</Button>
+						</DialogTrigger>
+						<DialogContent className="sm:max-w-md">
+							<DialogHeader>
+								<DialogTitle>Tambah Dokter</DialogTitle>
+								<DialogDescription>
+									Akun dokter baru akan langsung bisa digunakan untuk masuk.
+								</DialogDescription>
+							</DialogHeader>
+							<form
+								className="space-y-4"
+								onSubmit={(event) => {
+									event.preventDefault();
+									event.stopPropagation();
+									void form.handleSubmit();
+								}}
+							>
+								{formError ? (
+									<Alert variant="destructive">
+										<AlertCircle className="size-4" />
+										<AlertDescription>{formError}</AlertDescription>
+									</Alert>
+								) : null}
+
+								{formSuccess ? (
+									<Alert>
+										<AlertDescription>{formSuccess}</AlertDescription>
+									</Alert>
+								) : null}
+
+								<form.Field
+									name="fullName"
+									validators={{
+										onChange: ({ value }) =>
+											value.trim().length === 0
+												? "Nama wajib diisi."
+												: undefined,
+									}}
+								>
+									{(field) => <TextField field={field} label="Nama Lengkap" />}
+								</form.Field>
+
+								<form.Field
+									name="email"
+									validators={{
+										onChange: ({ value }) => {
+											if (value.trim().length === 0) {
+												return "Email wajib diisi.";
+											}
+
+											return value.includes("@")
+												? undefined
+												: "Format email tidak valid.";
+										},
+									}}
+								>
+									{(field) => (
+										<TextField
+											field={field}
+											label="Email"
+											type="email"
+											autoComplete="email"
+										/>
+									)}
+								</form.Field>
+
+								<form.Field
+									name="password"
+									validators={{
+										onChange: ({ value }) =>
+											value.length === 0 ? "Password wajib diisi." : undefined,
+									}}
+								>
+									{(field) => (
+										<TextField
+											field={field}
+											label="Password"
+											type="password"
+											autoComplete="new-password"
+										/>
+									)}
+								</form.Field>
+
+								<Separator />
+
+								<form.Field
+									name="specialization"
+									validators={{
+										onChange: ({ value }) =>
+											value.trim().length === 0
+												? "Spesialisasi wajib diisi."
+												: undefined,
+									}}
+								>
+									{(field) => <TextField field={field} label="Spesialisasi" />}
+								</form.Field>
+
+								<form.Field
+									name="licenseNumber"
+									validators={{
+										onChange: ({ value }) =>
+											value.trim().length === 0
+												? "Nomor lisensi wajib diisi."
+												: undefined,
+									}}
+								>
+									{(field) => <TextField field={field} label="Nomor Lisensi" />}
+								</form.Field>
+
+								<form.Subscribe
+									selector={(state) => [state.canSubmit, state.isSubmitting]}
+								>
+									{([canSubmit, isSubmitting]) => (
+										<Button
+											className="w-full"
+											disabled={
+												!canSubmit ||
+												isSubmitting ||
+												createDoctorMutation.isPending
+											}
+											size="lg"
+											type="submit"
+										>
+											<Plus className="size-4" />
+											{isSubmitting || createDoctorMutation.isPending
+												? "Menyimpan..."
+												: "Tambah Dokter"}
+										</Button>
+									)}
+								</form.Subscribe>
+							</form>
+						</DialogContent>
+					</Dialog>
+				</div>
+
 				{doctorsQuery.isPending ? <DoctorTableSkeleton /> : null}
 
 				{doctorsQuery.isError ? (
@@ -142,12 +295,12 @@ function AdminDoctorsPage() {
 
 				{doctorsQuery.isSuccess ? (
 					doctorsTable.getRowModel().rows.length > 0 ? (
-						<Table>
+						<Table className="text-sm">
 							<TableHeader>
 								{doctorsTable.getHeaderGroups().map((headerGroup) => (
 									<TableRow key={headerGroup.id}>
 										{headerGroup.headers.map((header) => (
-											<TableHead key={header.id}>
+											<TableHead key={header.id} className="h-12 px-4">
 												{header.isPlaceholder
 													? null
 													: flexRender(
@@ -167,8 +320,8 @@ function AdminDoctorsPage() {
 												key={cell.id}
 												className={
 													cell.column.id === "fullName"
-														? "font-medium"
-														: undefined
+														? "px-4 py-3 font-medium"
+														: "px-4 py-3"
 												}
 											>
 												{flexRender(
@@ -185,142 +338,11 @@ function AdminDoctorsPage() {
 						<div className="rounded-lg border border-dashed p-8 text-center">
 							<p className="font-medium">Belum ada dokter.</p>
 							<p className="mt-1 text-sm text-muted-foreground">
-								Tambahkan dokter pertama melalui formulir di samping.
+								Tambahkan dokter pertama melalui tombol di atas tabel.
 							</p>
 						</div>
 					)
 				) : null}
-
-				<Card>
-					<CardHeader>
-						<CardTitle>Tambah Dokter</CardTitle>
-						<CardDescription>
-							Akun dokter baru akan langsung bisa digunakan untuk masuk.
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<form
-							className="space-y-4"
-							onSubmit={(event) => {
-								event.preventDefault();
-								event.stopPropagation();
-								void form.handleSubmit();
-							}}
-						>
-							{formError ? (
-								<Alert variant="destructive">
-									<AlertCircle className="size-4" />
-									<AlertDescription>{formError}</AlertDescription>
-								</Alert>
-							) : null}
-
-							{formSuccess ? (
-								<Alert>
-									<AlertDescription>{formSuccess}</AlertDescription>
-								</Alert>
-							) : null}
-
-							<form.Field
-								name="fullName"
-								validators={{
-									onChange: ({ value }) =>
-										value.trim().length === 0 ? "Nama wajib diisi." : undefined,
-								}}
-							>
-								{(field) => <TextField field={field} label="Nama Lengkap" />}
-							</form.Field>
-
-							<form.Field
-								name="email"
-								validators={{
-									onChange: ({ value }) => {
-										if (value.trim().length === 0) {
-											return "Email wajib diisi.";
-										}
-
-										return value.includes("@")
-											? undefined
-											: "Format email tidak valid.";
-									},
-								}}
-							>
-								{(field) => (
-									<TextField
-										field={field}
-										label="Email"
-										type="email"
-										autoComplete="email"
-									/>
-								)}
-							</form.Field>
-
-							<form.Field
-								name="password"
-								validators={{
-									onChange: ({ value }) =>
-										value.length === 0 ? "Password wajib diisi." : undefined,
-								}}
-							>
-								{(field) => (
-									<TextField
-										field={field}
-										label="Password"
-										type="password"
-										autoComplete="new-password"
-									/>
-								)}
-							</form.Field>
-
-							<Separator />
-
-							<form.Field
-								name="specialization"
-								validators={{
-									onChange: ({ value }) =>
-										value.trim().length === 0
-											? "Spesialisasi wajib diisi."
-											: undefined,
-								}}
-							>
-								{(field) => <TextField field={field} label="Spesialisasi" />}
-							</form.Field>
-
-							<form.Field
-								name="licenseNumber"
-								validators={{
-									onChange: ({ value }) =>
-										value.trim().length === 0
-											? "Nomor lisensi wajib diisi."
-											: undefined,
-								}}
-							>
-								{(field) => <TextField field={field} label="Nomor Lisensi" />}
-							</form.Field>
-
-							<form.Subscribe
-								selector={(state) => [state.canSubmit, state.isSubmitting]}
-							>
-								{([canSubmit, isSubmitting]) => (
-									<Button
-										className="w-full"
-										disabled={
-											!canSubmit ||
-											isSubmitting ||
-											createDoctorMutation.isPending
-										}
-										size="lg"
-										type="submit"
-									>
-										<Plus className="size-4" />
-										{isSubmitting || createDoctorMutation.isPending
-											? "Menyimpan..."
-											: "Tambah Dokter"}
-									</Button>
-								)}
-							</form.Subscribe>
-						</form>
-					</CardContent>
-				</Card>
 			</div>
 		</main>
 	);
