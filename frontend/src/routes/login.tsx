@@ -3,6 +3,8 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { AlertCircle, LogIn } from "lucide-react";
 import { useState } from "react";
 
+import { useLoginMutation } from "@/api/auth/mutations";
+import { authQueries } from "@/api/auth/queries";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,10 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type AuthUser, getCurrentUser, roleHomePath } from "@/lib/auth";
-
-const API_BASE_URL =
-	import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+import { getCurrentUser, roleHomePath } from "@/lib/auth";
 
 type LoginForm = {
 	email: string;
@@ -25,8 +24,10 @@ type LoginForm = {
 };
 
 export const Route = createFileRoute("/login")({
-	beforeLoad: async () => {
-		const user = await getCurrentUser();
+	beforeLoad: async ({ context }) => {
+		const user = await context.queryClient.ensureQueryData(
+			authQueries.currentUser(getCurrentUser),
+		);
 
 		if (user) {
 			throw redirect({ to: roleHomePath[user.role] });
@@ -37,6 +38,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
 	const navigate = useNavigate();
+	const loginMutation = useLoginMutation();
 	const [formError, setFormError] = useState("");
 
 	const form = useForm({
@@ -47,23 +49,12 @@ function LoginPage() {
 		onSubmit: async ({ value }) => {
 			setFormError("");
 
-			const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-				method: "POST",
-				credentials: "include",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(value),
-			});
-
-			if (!response.ok) {
+			try {
+				const user = await loginMutation.mutateAsync(value);
+				await navigate({ to: roleHomePath[user.role] });
+			} catch {
 				setFormError("Email atau password tidak valid.");
-				return;
 			}
-
-			const user = (await response.json()) as AuthUser;
-
-			await navigate({ to: roleHomePath[user.role] });
 		},
 	});
 

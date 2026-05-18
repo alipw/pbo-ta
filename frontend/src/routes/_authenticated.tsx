@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
+import { authQueries } from "@/api/auth/queries";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
 	SidebarInset,
@@ -9,8 +10,10 @@ import {
 import { getCurrentUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authenticated")({
-	beforeLoad: async () => {
-		const user = await getCurrentUser();
+	beforeLoad: async ({ context }) => {
+		const user = await context.queryClient.ensureQueryData(
+			authQueries.currentUser(getCurrentUser),
+		);
 
 		if (!user) {
 			throw redirect({ to: "/login" });
