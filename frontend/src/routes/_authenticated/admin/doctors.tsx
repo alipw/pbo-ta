@@ -1,12 +1,18 @@
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { AlertCircle, Plus, Stethoscope } from "lucide-react";
+import {
+	type ColumnDef,
+	flexRender,
+	getCoreRowModel,
+	useReactTable,
+} from "@tanstack/react-table";
+import { AlertCircle, Plus } from "lucide-react";
 import { useState } from "react";
 
 import { useCreateDoctorMutation } from "@/api/admin/doctors/mutations";
 import { adminDoctorQueries } from "@/api/admin/doctors/queries";
-import type { DoctorRequest } from "@/api/admin/doctors/types";
+import type { Doctor, DoctorRequest } from "@/api/admin/doctors/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +36,35 @@ import {
 } from "@/components/ui/table";
 import { roleHomePath } from "@/lib/auth";
 
+const doctorDateFormatter = new Intl.DateTimeFormat("id-ID", {
+	dateStyle: "medium",
+});
+
+const doctorColumns: ColumnDef<Doctor>[] = [
+	{
+		accessorKey: "fullName",
+		header: "Nama",
+	},
+	{
+		accessorKey: "email",
+		header: "Email",
+	},
+	{
+		accessorKey: "specialization",
+		header: "Spesialisasi",
+	},
+	{
+		accessorKey: "licenseNumber",
+		header: "No. Lisensi",
+	},
+	{
+		accessorKey: "createdAt",
+		header: "Dibuat",
+		cell: ({ getValue }) =>
+			doctorDateFormatter.format(new Date(getValue<string>())),
+	},
+];
+
 export const Route = createFileRoute("/_authenticated/admin/doctors")({
 	beforeLoad: ({ context }) => {
 		const { user } = context;
@@ -45,6 +80,11 @@ function AdminDoctorsPage() {
 	const doctorsQuery = useQuery({
 		...adminDoctorQueries.list(),
 		enabled: typeof window !== "undefined",
+	});
+	const doctorsTable = useReactTable({
+		columns: doctorColumns,
+		data: doctorsQuery.data ?? [],
+		getCoreRowModel: getCoreRowModel(),
 	});
 	const createDoctorMutation = useCreateDoctorMutation();
 	const [formError, setFormError] = useState("");
@@ -101,31 +141,42 @@ function AdminDoctorsPage() {
 				) : null}
 
 				{doctorsQuery.isSuccess ? (
-					doctorsQuery.data.length > 0 ? (
+					doctorsTable.getRowModel().rows.length > 0 ? (
 						<Table>
 							<TableHeader>
-								<TableRow>
-									<TableHead>Nama</TableHead>
-									<TableHead>Email</TableHead>
-									<TableHead>Spesialisasi</TableHead>
-									<TableHead>No. Lisensi</TableHead>
-									<TableHead>Dibuat</TableHead>
-								</TableRow>
+								{doctorsTable.getHeaderGroups().map((headerGroup) => (
+									<TableRow key={headerGroup.id}>
+										{headerGroup.headers.map((header) => (
+											<TableHead key={header.id}>
+												{header.isPlaceholder
+													? null
+													: flexRender(
+															header.column.columnDef.header,
+															header.getContext(),
+														)}
+											</TableHead>
+										))}
+									</TableRow>
+								))}
 							</TableHeader>
 							<TableBody>
-								{doctorsQuery.data.map((doctor) => (
-									<TableRow key={doctor.id}>
-										<TableCell className="font-medium">
-											{doctor.fullName}
-										</TableCell>
-										<TableCell>{doctor.email}</TableCell>
-										<TableCell>{doctor.specialization}</TableCell>
-										<TableCell>{doctor.licenseNumber}</TableCell>
-										<TableCell>
-											{new Intl.DateTimeFormat("id-ID", {
-												dateStyle: "medium",
-											}).format(new Date(doctor.createdAt))}
-										</TableCell>
+								{doctorsTable.getRowModel().rows.map((row) => (
+									<TableRow key={row.id}>
+										{row.getVisibleCells().map((cell) => (
+											<TableCell
+												key={cell.id}
+												className={
+													cell.column.id === "fullName"
+														? "font-medium"
+														: undefined
+												}
+											>
+												{flexRender(
+													cell.column.columnDef.cell,
+													cell.getContext(),
+												)}
+											</TableCell>
+										))}
 									</TableRow>
 								))}
 							</TableBody>
@@ -139,8 +190,6 @@ function AdminDoctorsPage() {
 						</div>
 					)
 				) : null}
-
-
 
 				<Card>
 					<CardHeader>
