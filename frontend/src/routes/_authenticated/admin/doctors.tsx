@@ -7,22 +7,50 @@ import {
 	getCoreRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { AlertCircle, Plus } from "lucide-react";
-import { useState } from "react";
+import {
+	AlertCircle,
+	EllipsisVertical,
+	Eye,
+	Pencil,
+	Plus,
+	Trash2,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 
-import { useCreateDoctorMutation } from "@/api/admin/doctors/mutations";
+import {
+	useCreateDoctorMutation,
+	useDeleteDoctorMutation,
+	useUpdateDoctorMutation,
+} from "@/api/admin/doctors/mutations";
 import { adminDoctorQueries } from "@/api/admin/doctors/queries";
 import type { Doctor, DoctorRequest } from "@/api/admin/doctors/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+	AlertDialog,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -66,6 +94,62 @@ const doctorColumns: ColumnDef<Doctor>[] = [
 	},
 ];
 
+type DoctorColumnsOptions = {
+	onView: (doctor: Doctor) => void;
+	onEdit: (doctor: Doctor) => void;
+	onDelete: (doctor: Doctor) => void;
+};
+
+function getDoctorColumns({
+	onView,
+	onEdit,
+	onDelete,
+}: DoctorColumnsOptions): ColumnDef<Doctor>[] {
+	return [
+		...doctorColumns,
+		{
+			id: "actions",
+			header: () => <span className="sr-only">Aksi</span>,
+			cell: ({ row }) => {
+				const doctor = row.original;
+
+				return (
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								aria-label={`Buka menu aksi ${doctor.fullName}`}
+							>
+								<EllipsisVertical className="size-4" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem onSelect={() => onView(doctor)}>
+								<Eye />
+								Lihat detail
+							</DropdownMenuItem>
+							<DropdownMenuItem onSelect={() => onEdit(doctor)}>
+								<Pencil />
+								Edit
+							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem
+								className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+								onSelect={() => onDelete(doctor)}
+							>
+								<Trash2 />
+								Hapus
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				);
+			},
+		},
+	];
+}
+
 export const Route = createFileRoute("/_authenticated/admin/doctors")({
 	beforeLoad: ({ context }) => {
 		const { user } = context;
@@ -82,15 +166,38 @@ function AdminDoctorsPage() {
 		...adminDoctorQueries.list(),
 		enabled: typeof window !== "undefined",
 	});
+	const createDoctorMutation = useCreateDoctorMutation();
+	const updateDoctorMutation = useUpdateDoctorMutation();
+	const deleteDoctorMutation = useDeleteDoctorMutation();
+	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+	const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+	const [deletingDoctor, setDeletingDoctor] = useState<Doctor | null>(null);
+	const [formError, setFormError] = useState("");
+	const [formSuccess, setFormSuccess] = useState("");
+	const [editFormError, setEditFormError] = useState("");
+	const [editFormSuccess, setEditFormSuccess] = useState("");
+	const [deleteError, setDeleteError] = useState("");
+	const columns = useMemo(
+		() =>
+			getDoctorColumns({
+				onView: () => undefined,
+				onEdit: (doctor) => {
+					setEditFormError("");
+					setEditFormSuccess("");
+					setEditingDoctor(doctor);
+				},
+				onDelete: (doctor) => {
+					setDeleteError("");
+					setDeletingDoctor(doctor);
+				},
+			}),
+		[],
+	);
 	const doctorsTable = useReactTable({
-		columns: doctorColumns,
+		columns,
 		data: doctorsQuery.data ?? [],
 		getCoreRowModel: getCoreRowModel(),
 	});
-	const createDoctorMutation = useCreateDoctorMutation();
-	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-	const [formError, setFormError] = useState("");
-	const [formSuccess, setFormSuccess] = useState("");
 
 	const form = useForm({
 		defaultValues: {
@@ -113,6 +220,21 @@ function AdminDoctorsPage() {
 			}
 		},
 	});
+
+	async function handleDeleteDoctor() {
+		if (!deletingDoctor) {
+			return;
+		}
+
+		setDeleteError("");
+
+		try {
+			await deleteDoctorMutation.mutateAsync(deletingDoctor.id);
+			setDeletingDoctor(null);
+		} catch {
+			setDeleteError("Dokter gagal dihapus. Coba lagi.");
+		}
+	}
 
 	return (
 		<main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-10">
@@ -256,31 +378,111 @@ function AdminDoctorsPage() {
 									{(field) => <TextField field={field} label="Nomor Lisensi" />}
 								</form.Field>
 
-								<form.Subscribe
-									selector={(state) => [state.canSubmit, state.isSubmitting]}
-								>
-									{([canSubmit, isSubmitting]) => (
-										<Button
-											className="w-full"
-											disabled={
-												!canSubmit ||
-												isSubmitting ||
-												createDoctorMutation.isPending
-											}
-											size="lg"
-											type="submit"
-										>
-											<Plus className="size-4" />
-											{isSubmitting || createDoctorMutation.isPending
-												? "Menyimpan..."
-												: "Tambah Dokter"}
-										</Button>
-									)}
-								</form.Subscribe>
+								<DialogFooter className="-mx-4 border-t px-4 pt-4">
+									<form.Subscribe
+										selector={(state) => [state.canSubmit, state.isSubmitting]}
+									>
+										{([canSubmit, isSubmitting]) => (
+											<Button
+												className="w-full"
+												disabled={
+													!canSubmit ||
+													isSubmitting ||
+													createDoctorMutation.isPending
+												}
+												size="lg"
+												type="submit"
+											>
+												<Plus className="size-4" />
+												{isSubmitting || createDoctorMutation.isPending
+													? "Menyimpan..."
+													: "Tambah Dokter"}
+											</Button>
+										)}
+									</form.Subscribe>
+								</DialogFooter>
 							</form>
 						</DialogContent>
 					</Dialog>
 				</div>
+
+				{editingDoctor ? (
+					<EditDoctorDialog
+						key={editingDoctor.id}
+						doctor={editingDoctor}
+						error={editFormError}
+						success={editFormSuccess}
+						isPending={updateDoctorMutation.isPending}
+						onOpenChange={(open) => {
+							if (!open) {
+								setEditingDoctor(null);
+								setEditFormError("");
+								setEditFormSuccess("");
+							}
+						}}
+						onSubmit={async (value) => {
+							setEditFormError("");
+							setEditFormSuccess("");
+
+							try {
+								await updateDoctorMutation.mutateAsync({
+									doctorId: editingDoctor.id,
+									request: value,
+								});
+								setEditFormSuccess("Dokter berhasil diperbarui.");
+							} catch {
+								setEditFormError(
+									"Dokter gagal diperbarui. Periksa data lalu coba lagi.",
+								);
+							}
+						}}
+					/>
+				) : null}
+
+				<AlertDialog
+					open={Boolean(deletingDoctor)}
+					onOpenChange={(open) => {
+						if (!open && !deleteDoctorMutation.isPending) {
+							setDeletingDoctor(null);
+							setDeleteError("");
+						}
+					}}
+				>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Hapus Dokter?</AlertDialogTitle>
+							<AlertDialogDescription>
+								{deletingDoctor
+									? `${deletingDoctor.fullName} akan dihapus dari daftar dokter. Tindakan ini tidak dapat dibatalkan.`
+									: "Dokter ini akan dihapus dari daftar dokter."}
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+
+						{deleteError ? (
+							<Alert variant="destructive">
+								<AlertCircle className="size-4" />
+								<AlertDescription>{deleteError}</AlertDescription>
+							</Alert>
+						) : null}
+
+						<AlertDialogFooter className="-mx-4 border-t px-4 pt-4">
+							<AlertDialogCancel disabled={deleteDoctorMutation.isPending}>
+								Batal
+							</AlertDialogCancel>
+							<Button
+								type="button"
+								variant="destructive"
+								disabled={deleteDoctorMutation.isPending}
+								onClick={() => {
+									void handleDeleteDoctor();
+								}}
+							>
+								<Trash2 className="size-4" />
+								{deleteDoctorMutation.isPending ? "Menghapus..." : "Hapus"}
+							</Button>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
 
 				{doctorsQuery.isPending ? <DoctorTableSkeleton /> : null}
 
@@ -345,6 +547,166 @@ function AdminDoctorsPage() {
 				) : null}
 			</div>
 		</main>
+	);
+}
+
+type EditDoctorDialogProps = {
+	doctor: Doctor;
+	error: string;
+	success: string;
+	isPending: boolean;
+	onOpenChange: (open: boolean) => void;
+	onSubmit: (value: DoctorRequest) => Promise<void>;
+};
+
+function EditDoctorDialog({
+	doctor,
+	error,
+	success,
+	isPending,
+	onOpenChange,
+	onSubmit,
+}: EditDoctorDialogProps) {
+	const form = useForm({
+		defaultValues: {
+			fullName: doctor.fullName,
+			email: doctor.email,
+			password: "",
+			specialization: doctor.specialization,
+			licenseNumber: doctor.licenseNumber,
+		} as DoctorRequest,
+		onSubmit: async ({ value }) => {
+			await onSubmit(value);
+		},
+	});
+
+	return (
+		<Dialog open onOpenChange={onOpenChange}>
+			<DialogContent className="sm:max-w-md">
+				<DialogHeader>
+					<DialogTitle>Edit Dokter</DialogTitle>
+					<DialogDescription>
+						Perbarui data dokter. Masukkan password baru untuk akun ini.
+					</DialogDescription>
+				</DialogHeader>
+				<form
+					className="space-y-4"
+					onSubmit={(event) => {
+						event.preventDefault();
+						event.stopPropagation();
+						void form.handleSubmit();
+					}}
+				>
+					{error ? (
+						<Alert variant="destructive">
+							<AlertCircle className="size-4" />
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					) : null}
+
+					{success ? (
+						<Alert>
+							<AlertDescription>{success}</AlertDescription>
+						</Alert>
+					) : null}
+
+					<form.Field
+						name="fullName"
+						validators={{
+							onChange: ({ value }) =>
+								value.trim().length === 0 ? "Nama wajib diisi." : undefined,
+						}}
+					>
+						{(field) => <TextField field={field} label="Nama Lengkap" />}
+					</form.Field>
+
+					<form.Field
+						name="email"
+						validators={{
+							onChange: ({ value }) => {
+								if (value.trim().length === 0) {
+									return "Email wajib diisi.";
+								}
+
+								return value.includes("@")
+									? undefined
+									: "Format email tidak valid.";
+							},
+						}}
+					>
+						{(field) => (
+							<TextField
+								field={field}
+								label="Email"
+								type="email"
+								autoComplete="email"
+							/>
+						)}
+					</form.Field>
+
+					<form.Field
+						name="password"
+						validators={{
+							onChange: ({ value }) =>
+								value.length === 0 ? "Password wajib diisi." : undefined,
+						}}
+					>
+						{(field) => (
+							<TextField
+								field={field}
+								label="Password"
+								type="password"
+								autoComplete="new-password"
+							/>
+						)}
+					</form.Field>
+
+					<Separator />
+
+					<form.Field
+						name="specialization"
+						validators={{
+							onChange: ({ value }) =>
+								value.trim().length === 0
+									? "Spesialisasi wajib diisi."
+									: undefined,
+						}}
+					>
+						{(field) => <TextField field={field} label="Spesialisasi" />}
+					</form.Field>
+
+					<form.Field
+						name="licenseNumber"
+						validators={{
+							onChange: ({ value }) =>
+								value.trim().length === 0
+									? "Nomor lisensi wajib diisi."
+									: undefined,
+						}}
+					>
+						{(field) => <TextField field={field} label="Nomor Lisensi" />}
+					</form.Field>
+
+					<DialogFooter className="-mx-4 border-t px-4 pt-4">
+						<form.Subscribe
+							selector={(state) => [state.canSubmit, state.isSubmitting]}
+						>
+							{([canSubmit, isSubmitting]) => (
+								<Button
+									className="w-full"
+									disabled={!canSubmit || isSubmitting || isPending}
+									size="lg"
+									type="submit"
+								>
+									<Pencil className="size-4" />
+									{isSubmitting || isPending ? "Menyimpan..." : "Simpan Dokter"}
+								</Button>
+							)}
+						</form.Subscribe>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

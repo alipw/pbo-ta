@@ -36,12 +36,30 @@ public class DoctorService {
     public DoctorResponse create(DoctorRequest request) {
         Doctor doctor = new Doctor();
         doctor.setRole(UserRole.DOCTOR);
+        applyRequest(doctor, request);
+
+        return DoctorResponse.from(doctorRepository.save(doctor));
+    }
+
+    @Transactional
+    public DoctorResponse update(Long doctorId, DoctorRequest request) {
+        Doctor doctor = findById(doctorId);
+        applyRequest(doctor, request);
+
+        return DoctorResponse.from(doctorRepository.save(doctor));
+    }
+
+    @Transactional
+    public void deleteById(Long doctorId) {
+        Doctor doctor = findById(doctorId);
+        doctorRepository.delete(doctor);
+    }
+
+    private void applyRequest(Doctor doctor, DoctorRequest request) {
         doctor.setFullName(request.fullName());
         doctor.setEmail(request.email());
         doctor.setPasswordHash(passwordEncoder.encode(request.password()));
         doctor.setSpecialization(request.specialization());
         doctor.setLicenseNumber(request.licenseNumber());
-
-        return DoctorResponse.from(doctorRepository.save(doctor));
     }
 }

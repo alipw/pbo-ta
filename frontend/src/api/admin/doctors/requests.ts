@@ -14,3 +14,19 @@ export function createDoctor(request: DoctorRequest) {
 		body: request,
 	});
 }
+
+export function updateDoctor(doctorId: number, request: DoctorRequest) {
+	return apiRequest<DoctorResponse, DoctorRequest>(
+		`${ADMIN_DOCTORS_PATH}/${doctorId}`,
+		{
+			method: "PUT",
+			body: request,
+		},
+	);
+}
+
+export function deleteDoctor(doctorId: number) {
+	return apiRequest<void>(`${ADMIN_DOCTORS_PATH}/${doctorId}`, {
+		method: "DELETE",
+	});
+}
