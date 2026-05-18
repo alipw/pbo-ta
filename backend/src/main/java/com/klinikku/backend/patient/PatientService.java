@@ -36,12 +36,30 @@ public class PatientService {
     public PatientResponse create(PatientRequest request) {
         Patient patient = new Patient();
         patient.setRole(UserRole.PATIENT);
+        applyRequest(patient, request);
+
+        return PatientResponse.from(patientRepository.save(patient));
+    }
+
+    @Transactional
+    public PatientResponse update(Long patientId, PatientRequest request) {
+        Patient patient = findById(patientId);
+        applyRequest(patient, request);
+
+        return PatientResponse.from(patientRepository.save(patient));
+    }
+
+    @Transactional
+    public void deleteById(Long patientId) {
+        Patient patient = findById(patientId);
+        patientRepository.delete(patient);
+    }
+
+    private void applyRequest(Patient patient, PatientRequest request) {
         patient.setFullName(request.fullName());
         patient.setEmail(request.email());
         patient.setPasswordHash(passwordEncoder.encode(request.password()));
         patient.setPhoneNumber(request.phoneNumber());
         patient.setDateOfBirth(request.dateOfBirth());
-
-        return PatientResponse.from(patientRepository.save(patient));
     }
 }

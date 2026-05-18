@@ -16,6 +16,7 @@ import { Route as AuthenticatedPatientRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDoctorRouteImport } from './routes/_authenticated/doctor'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedAdminPatientsRouteImport } from './routes/_authenticated/admin/patients'
 import { Route as AuthenticatedAdminDoctorsRouteImport } from './routes/_authenticated/admin/doctors'
 
 const LoginRoute = LoginRouteImport.update({
@@ -52,6 +53,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminPatientsRoute =
+  AuthenticatedAdminPatientsRouteImport.update({
+    id: '/patients',
+    path: '/patients',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminDoctorsRoute =
   AuthenticatedAdminDoctorsRouteImport.update({
     id: '/doctors',
@@ -66,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/doctor': typeof AuthenticatedDoctorRoute
   '/patient': typeof AuthenticatedPatientRoute
   '/admin/doctors': typeof AuthenticatedAdminDoctorsRoute
+  '/admin/patients': typeof AuthenticatedAdminPatientsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
   '/doctor': typeof AuthenticatedDoctorRoute
   '/patient': typeof AuthenticatedPatientRoute
   '/admin/doctors': typeof AuthenticatedAdminDoctorsRoute
+  '/admin/patients': typeof AuthenticatedAdminPatientsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -85,6 +94,7 @@ export interface FileRoutesById {
   '/_authenticated/doctor': typeof AuthenticatedDoctorRoute
   '/_authenticated/patient': typeof AuthenticatedPatientRoute
   '/_authenticated/admin/doctors': typeof AuthenticatedAdminDoctorsRoute
+  '/_authenticated/admin/patients': typeof AuthenticatedAdminPatientsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -96,9 +106,17 @@ export interface FileRouteTypes {
     | '/doctor'
     | '/patient'
     | '/admin/doctors'
+    | '/admin/patients'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/doctor' | '/patient' | '/admin/doctors' | '/admin'
+  to:
+    | '/'
+    | '/login'
+    | '/doctor'
+    | '/patient'
+    | '/admin/doctors'
+    | '/admin/patients'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -108,6 +126,7 @@ export interface FileRouteTypes {
     | '/_authenticated/doctor'
     | '/_authenticated/patient'
     | '/_authenticated/admin/doctors'
+    | '/_authenticated/admin/patients'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -168,6 +187,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/patients': {
+      id: '/_authenticated/admin/patients'
+      path: '/patients'
+      fullPath: '/admin/patients'
+      preLoaderRoute: typeof AuthenticatedAdminPatientsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/doctors': {
       id: '/_authenticated/admin/doctors'
       path: '/doctors'
@@ -180,11 +206,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDoctorsRoute: typeof AuthenticatedAdminDoctorsRoute
+  AuthenticatedAdminPatientsRoute: typeof AuthenticatedAdminPatientsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDoctorsRoute: AuthenticatedAdminDoctorsRoute,
+  AuthenticatedAdminPatientsRoute: AuthenticatedAdminPatientsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
