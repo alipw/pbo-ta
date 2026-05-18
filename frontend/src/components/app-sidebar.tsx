@@ -1,0 +1,155 @@
+import { Link } from "@tanstack/react-router";
+import {
+	CalendarClock,
+	CalendarDays,
+	CalendarPlus,
+	ClipboardList,
+	ClipboardPlus,
+	CreditCard,
+	FileText,
+	Stethoscope,
+	UserRound,
+	Users,
+} from "lucide-react";
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarGroup,
+	SidebarGroupContent,
+	SidebarGroupLabel,
+	SidebarHeader,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import type { UserRole } from "@/lib/auth";
+
+type NavItem = {
+	title: string;
+	url: string;
+	icon: React.ComponentType<{ className?: string }>;
+};
+
+type NavGroup = {
+	label: string;
+	items: NavItem[];
+};
+
+const adminNav: NavGroup[] = [
+	{
+		label: "Manajemen",
+		items: [
+			{ title: "Dokter", url: "/admin", icon: Stethoscope },
+			{ title: "Pasien", url: "/admin", icon: Users },
+			{ title: "Appointment", url: "/admin", icon: CalendarDays },
+			{ title: "Jadwal", url: "/admin", icon: ClipboardList },
+			{ title: "Pembayaran", url: "/admin", icon: CreditCard },
+		],
+	},
+];
+
+const doctorNav: NavGroup[] = [
+	{
+		label: "Dokter",
+		items: [
+			{ title: "Jadwal Saya", url: "/doctor", icon: CalendarClock },
+			{ title: "Appointment", url: "/doctor", icon: UserRound },
+			{ title: "Rekam Medis", url: "/doctor", icon: ClipboardPlus },
+		],
+	},
+];
+
+const patientNav: NavGroup[] = [
+	{
+		label: "Pasien",
+		items: [
+			{ title: "Janji Temu", url: "/patient", icon: CalendarPlus },
+			{ title: "Rekam Medis", url: "/patient", icon: FileText },
+			{ title: "Pembayaran", url: "/patient", icon: CreditCard },
+		],
+	},
+];
+
+const roleNav: Record<UserRole, NavGroup[]> = {
+	ADMIN: adminNav,
+	DOCTOR: doctorNav,
+	PATIENT: patientNav,
+};
+
+type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
+	userName: string;
+	userRole: UserRole;
+};
+
+export function AppSidebar({ userName, userRole, ...props }: AppSidebarProps) {
+	const navGroups = roleNav[userRole] ?? [];
+
+	return (
+		<Sidebar {...props}>
+			<SidebarHeader>
+				<SidebarMenu>
+					<SidebarMenuItem>
+						<SidebarMenuButton size="lg" asChild>
+							<Link
+								to={
+									userRole === "ADMIN"
+										? "/admin"
+										: userRole === "DOCTOR"
+											? "/doctor"
+											: "/patient"
+								}
+							>
+								<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+									<Stethoscope className="size-4" />
+								</div>
+								<div className="flex flex-col gap-0.5 leading-none">
+									<span className="font-semibold">Klinikku</span>
+									<span className="text-xs text-muted-foreground">
+										{userRole === "ADMIN"
+											? "Admin"
+											: userRole === "DOCTOR"
+												? "Dokter"
+												: "Pasien"}
+									</span>
+								</div>
+							</Link>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+				</SidebarMenu>
+			</SidebarHeader>
+			<SidebarContent>
+				{navGroups.map((group) => (
+					<SidebarGroup key={group.label}>
+						<SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+						<SidebarGroupContent>
+							<SidebarMenu>
+								{group.items.map((item) => (
+									<SidebarMenuItem key={item.title}>
+										<SidebarMenuButton asChild>
+											<Link to={item.url}>
+												<item.icon className="size-4" />
+												<span>{item.title}</span>
+											</Link>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								))}
+							</SidebarMenu>
+						</SidebarGroupContent>
+					</SidebarGroup>
+				))}
+			</SidebarContent>
+			<SidebarFooter>
+				<SidebarMenu>
+					<SidebarMenuItem>
+						<SidebarMenuButton asChild>
+							<Link to="/login">
+								<span>Keluar</span>
+							</Link>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+				</SidebarMenu>
+			</SidebarFooter>
+		</Sidebar>
+	);
+}

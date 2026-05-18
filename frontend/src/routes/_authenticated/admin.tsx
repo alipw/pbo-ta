@@ -8,21 +8,15 @@ import {
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentUser, roleHomePath } from "@/lib/auth";
+import { roleHomePath } from "@/lib/auth";
 
-export const Route = createFileRoute("/admin")({
-	beforeLoad: async () => {
-		const user = await getCurrentUser();
-
-		if (!user) {
-			throw redirect({ to: "/login" });
-		}
+export const Route = createFileRoute("/_authenticated/admin")({
+	beforeLoad: ({ context }) => {
+		const { user } = context;
 
 		if (user.role !== "ADMIN") {
 			throw redirect({ to: roleHomePath[user.role] });
 		}
-
-		return { user };
 	},
 	component: AdminDashboard,
 });
@@ -59,7 +53,7 @@ function AdminDashboard() {
 	const { user } = Route.useRouteContext();
 
 	return (
-		<main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-6 py-10">
+		<main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
 			<section className="space-y-2">
 				<p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 					Admin

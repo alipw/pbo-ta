@@ -1,41 +1,33 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { CalendarPlus, CreditCard, FileText } from "lucide-react";
+import { CalendarClock, ClipboardPlus, UserRound } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentUser, roleHomePath } from "@/lib/auth";
+import { roleHomePath } from "@/lib/auth";
 
-export const Route = createFileRoute("/patient")({
-	beforeLoad: async () => {
-		const user = await getCurrentUser();
+export const Route = createFileRoute("/_authenticated/doctor")({
+	beforeLoad: ({ context }) => {
+		const { user } = context;
 
-		if (!user) {
-			throw redirect({ to: "/login" });
-		}
-
-		if (user.role !== "PATIENT") {
+		if (user.role !== "DOCTOR") {
 			throw redirect({ to: roleHomePath[user.role] });
 		}
-
-		return { user };
 	},
-	component: PatientDashboard,
+	component: DoctorDashboard,
 });
 
-function PatientDashboard() {
+function DoctorDashboard() {
 	const { user } = Route.useRouteContext();
 
 	return (
-		<main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-6 py-10">
+		<main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10">
 			<section className="space-y-2">
 				<p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-					Pasien
+					Dokter
 				</p>
-				<h1 className="text-3xl font-semibold tracking-normal">
-					Portal Pasien
-				</h1>
+				<h1 className="text-3xl font-semibold tracking-normal">Ruang Dokter</h1>
 				<p className="max-w-2xl text-sm text-muted-foreground">
-					Selamat datang, {user.fullName}. Area pasien dapat diisi dengan
-					appointment, rekam medis, dan pembayaran pribadi.
+					Selamat datang, {user.fullName}. Modul dokter dapat ditempatkan di
+					area ini saat endpoint khusus dokter sudah tersedia.
 				</p>
 			</section>
 
@@ -43,36 +35,36 @@ function PatientDashboard() {
 				<Card>
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
-							<CalendarPlus className="size-4" />
-							Janji Temu
+							<CalendarClock className="size-4" />
+							Jadwal Saya
 						</CardTitle>
 					</CardHeader>
 					<CardContent className="text-sm text-muted-foreground">
-						Area untuk membuat dan melihat appointment.
+						Area untuk jadwal praktik dokter.
 					</CardContent>
 				</Card>
 
 				<Card>
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
-							<FileText className="size-4" />
+							<UserRound className="size-4" />
+							Appointment
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="text-sm text-muted-foreground">
+						Area untuk daftar janji temu dokter.
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<ClipboardPlus className="size-4" />
 							Rekam Medis
 						</CardTitle>
 					</CardHeader>
 					<CardContent className="text-sm text-muted-foreground">
-						Area untuk melihat riwayat pemeriksaan.
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<CreditCard className="size-4" />
-							Pembayaran
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="text-sm text-muted-foreground">
-						Area untuk tagihan dan status pembayaran.
+						Area untuk catatan pemeriksaan pasien.
 					</CardContent>
 				</Card>
 			</section>
