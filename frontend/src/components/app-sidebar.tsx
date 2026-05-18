@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
 	CalendarClock,
 	CalendarDays,
@@ -24,6 +24,9 @@ import {
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import type { UserRole } from "@/lib/auth";
+
+const API_BASE_URL =
+	import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 
 type NavItem = {
 	title: string;
@@ -83,7 +86,19 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
 };
 
 export function AppSidebar({ userName, userRole, ...props }: AppSidebarProps) {
+	const navigate = useNavigate();
 	const navGroups = roleNav[userRole] ?? [];
+
+	const handleLogout = async () => {
+		try {
+			await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+				method: "POST",
+				credentials: "include",
+			});
+		} finally {
+			await navigate({ to: "/login" });
+		}
+	};
 
 	return (
 		<Sidebar {...props}>
@@ -143,9 +158,13 @@ export function AppSidebar({ userName, userRole, ...props }: AppSidebarProps) {
 				<SidebarMenu>
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<Link to="/login">
+							<button
+								type="button"
+								className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+								onClick={handleLogout}
+							>
 								<span>Keluar</span>
-							</Link>
+							</button>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>
