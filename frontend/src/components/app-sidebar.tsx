@@ -41,7 +41,7 @@ const adminNav: NavGroup[] = [
 	{
 		label: "Manajemen",
 		items: [
-			{ title: "Dokter", url: "/admin", icon: Stethoscope },
+			{ title: "Dokter", url: "/admin/doctors", icon: Stethoscope },
 			{ title: "Pasien", url: "/admin", icon: Users },
 			{ title: "Appointment", url: "/admin", icon: CalendarDays },
 			{ title: "Jadwal", url: "/admin", icon: ClipboardList },
