@@ -24,6 +24,7 @@ import {
 } from "@/api/admin/doctors/mutations";
 import { adminDoctorQueries } from "@/api/admin/doctors/queries";
 import type { Doctor, DoctorRequest } from "@/api/admin/doctors/types";
+import { ApiError } from "@/api/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
 	AlertDialog,
@@ -68,6 +69,10 @@ import { roleHomePath } from "@/lib/auth";
 const doctorDateFormatter = new Intl.DateTimeFormat("id-ID", {
 	dateStyle: "medium",
 });
+
+type ApiErrorResponse = {
+	message?: unknown;
+};
 
 const doctorColumns: ColumnDef<Doctor>[] = [
 	{
@@ -215,8 +220,13 @@ function AdminDoctorsPage() {
 				await createDoctorMutation.mutateAsync(value);
 				formApi.reset();
 				setFormSuccess("Dokter berhasil ditambahkan.");
-			} catch {
-				setFormError("Dokter gagal ditambahkan. Periksa data lalu coba lagi.");
+			} catch (error) {
+				setFormError(
+					await getDoctorFormErrorMessage(
+						error,
+						"Dokter gagal ditambahkan. Periksa data lalu coba lagi.",
+					),
+				);
 			}
 		},
 	});
@@ -430,9 +440,12 @@ function AdminDoctorsPage() {
 									request: value,
 								});
 								setEditFormSuccess("Dokter berhasil diperbarui.");
-							} catch {
+							} catch (error) {
 								setEditFormError(
-									"Dokter gagal diperbarui. Periksa data lalu coba lagi.",
+									await getDoctorFormErrorMessage(
+										error,
+										"Dokter gagal diperbarui. Periksa data lalu coba lagi.",
+									),
 								);
 							}
 						}}
@@ -548,6 +561,29 @@ function AdminDoctorsPage() {
 			</div>
 		</main>
 	);
+}
+
+async function getDoctorFormErrorMessage(error: unknown, fallback: string) {
+	const apiMessage = await getApiErrorMessage(error);
+
+	if (apiMessage === "Doctor license number is already registered") {
+		return "Nomor lisensi dokter sudah terdaftar. Gunakan nomor lisensi lain.";
+	}
+
+	return fallback;
+}
+
+async function getApiErrorMessage(error: unknown) {
+	if (!(error instanceof ApiError)) {
+		return null;
+	}
+
+	try {
+		const body = (await error.response.json()) as ApiErrorResponse;
+		return typeof body.message === "string" ? body.message : null;
+	} catch {
+		return null;
+	}
 }
 
 type EditDoctorDialogProps = {
