@@ -4,6 +4,7 @@ import com.klinikku.backend.appointment.AppointmentRequest;
 import com.klinikku.backend.appointment.AppointmentResponse;
 import com.klinikku.backend.appointment.AppointmentService;
 import com.klinikku.backend.appointment.AppointmentStatus;
+import com.klinikku.backend.appointment.AppointmentStatusRequest;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -56,6 +58,13 @@ public class AdminAppointmentController {
             @PathVariable Long appointmentId,
             @Valid @RequestBody AppointmentRequest request) {
         return appointmentService.update(appointmentId, request);
+    }
+
+    @PatchMapping("/{appointmentId}/status")
+    public AppointmentResponse updateAppointmentStatus(
+            @PathVariable Long appointmentId,
+            @Valid @RequestBody AppointmentStatusRequest request) {
+        return appointmentService.updateStatus(appointmentId, request.status(), request.cancelledReason());
     }
 
     @DeleteMapping("/{appointmentId}")

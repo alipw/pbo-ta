@@ -89,6 +89,30 @@ class AppointmentServiceTest {
         verify(scheduleService).deleteBookedSlot(schedule);
     }
 
+    @Test
+    void updateStatusChangesAppointmentWithoutTouchingSchedule() {
+        Doctor doctor = doctorWithId(2L);
+        DoctorSchedule schedule = scheduleWithId(
+                3L,
+                doctor,
+                OffsetDateTime.parse("2026-06-03T11:00:00+07:00"),
+                OffsetDateTime.parse("2026-06-03T11:30:00+07:00"));
+        Appointment appointment = appointmentWithId(4L, schedule);
+        appointment.setPatient(patientWithId(1L));
+        appointment.setDoctor(doctor);
+        appointment.setBookedAt(schedule.getStartsAt());
+        appointment.setStatus(AppointmentStatus.MENUNGGU);
+        when(appointmentRepository.findById(4L)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AppointmentResponse response =
+                appointmentService.updateStatus(4L, AppointmentStatus.DIBATALKAN, "Patient requested cancellation");
+
+        assertThat(response.status()).isEqualTo(AppointmentStatus.DIBATALKAN);
+        assertThat(response.cancelledReason()).isEqualTo("Patient requested cancellation");
+        verify(appointmentRepository).save(appointment);
+    }
+
     private AppointmentRequest request(OffsetDateTime startsAt, OffsetDateTime endsAt) {
         return new AppointmentRequest(
                 1L,

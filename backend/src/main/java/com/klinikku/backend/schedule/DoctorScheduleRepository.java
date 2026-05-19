@@ -1,27 +1,43 @@
 package com.klinikku.backend.schedule;
 
+import jakarta.persistence.criteria.Predicate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface DoctorScheduleRepository extends JpaRepository<DoctorSchedule, Long> {
+public interface DoctorScheduleRepository
+        extends JpaRepository<DoctorSchedule, Long>, JpaSpecificationExecutor<DoctorSchedule> {
 
-    @Query("""
-            select schedule
-            from DoctorSchedule schedule
-            where (:doctorId is null or schedule.doctor.id = :doctorId)
-              and (:status is null or schedule.status = :status)
-              and (:from is null or schedule.startsAt >= :from)
-              and (:to is null or schedule.startsAt <= :to)
-            order by schedule.startsAt asc
-            """)
-    List<DoctorSchedule> findByFilters(
-            @Param("doctorId") Long doctorId,
-            @Param("status") ScheduleStatus status,
-            @Param("from") OffsetDateTime from,
-            @Param("to") OffsetDateTime to);
+    default List<DoctorSchedule> findByFilters(
+            Long doctorId,
+            ScheduleStatus status,
+            OffsetDateTime from,
+            OffsetDateTime to) {
+        return findAll((root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (doctorId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("doctor").get("id"), doctorId));
+            }
+            if (status != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+            }
+            if (from != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("startsAt"), from));
+            }
+            if (to != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("startsAt"), to));
+            }
+
+            query.orderBy(criteriaBuilder.asc(root.get("startsAt")));
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        });
+    }
 
     @Query("""
             select count(schedule) > 0

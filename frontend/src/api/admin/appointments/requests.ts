@@ -4,6 +4,7 @@ import type {
 	AppointmentFilters,
 	AppointmentRequest,
 	AppointmentResponse,
+	AppointmentStatusRequest,
 } from "./types";
 
 const ADMIN_APPOINTMENTS_PATH = "/api/v1/admin/appointments";
@@ -52,6 +53,19 @@ export function updateAppointment(
 		`${ADMIN_APPOINTMENTS_PATH}/${appointmentId}`,
 		{
 			method: "PUT",
+			body: request,
+		},
+	);
+}
+
+export function updateAppointmentStatus(
+	appointmentId: number,
+	request: AppointmentStatusRequest,
+) {
+	return apiRequest<AppointmentResponse, AppointmentStatusRequest>(
+		`${ADMIN_APPOINTMENTS_PATH}/${appointmentId}/status`,
+		{
+			method: "PATCH",
 			body: request,
 		},
 	);

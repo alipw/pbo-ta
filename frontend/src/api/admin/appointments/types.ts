@@ -43,4 +43,9 @@ export type AppointmentRequest = {
 	cancelledReason?: string;
 };
 
+export type AppointmentStatusRequest = {
+	status: AppointmentStatus;
+	cancelledReason?: string;
+};
+
 export type AppointmentResponse = Appointment;

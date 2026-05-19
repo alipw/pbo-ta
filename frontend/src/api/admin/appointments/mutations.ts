@@ -9,12 +9,22 @@ import {
 	createAppointment,
 	deleteAppointment,
 	updateAppointment,
+	updateAppointmentStatus,
 } from "./requests";
-import type { AppointmentRequest, AppointmentResponse } from "./types";
+import type {
+	AppointmentRequest,
+	AppointmentResponse,
+	AppointmentStatusRequest,
+} from "./types";
 
 type UpdateAppointmentVariables = {
 	appointmentId: number;
 	request: AppointmentRequest;
+};
+
+type UpdateAppointmentStatusVariables = {
+	appointmentId: number;
+	request: AppointmentStatusRequest;
 };
 
 export const adminAppointmentMutations = {
@@ -28,6 +38,16 @@ export const adminAppointmentMutations = {
 			mutationKey: [...adminAppointmentKeys.all, "update"],
 			mutationFn: ({ appointmentId, request }) =>
 				updateAppointment(appointmentId, request),
+		}),
+	updateStatus: () =>
+		mutationOptions<
+			AppointmentResponse,
+			Error,
+			UpdateAppointmentStatusVariables
+		>({
+			mutationKey: [...adminAppointmentKeys.all, "updateStatus"],
+			mutationFn: ({ appointmentId, request }) =>
+				updateAppointmentStatus(appointmentId, request),
 		}),
 	delete: () =>
 		mutationOptions<void, Error, number>({
@@ -54,6 +74,22 @@ export function useUpdateAppointmentMutation() {
 
 	return useMutation({
 		...adminAppointmentMutations.update(),
+		onSuccess: (appointment) => {
+			void queryClient.invalidateQueries({
+				queryKey: adminAppointmentKeys.lists(),
+			});
+			void queryClient.invalidateQueries({
+				queryKey: adminAppointmentKeys.detail(appointment.id),
+			});
+		},
+	});
+}
+
+export function useUpdateAppointmentStatusMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		...adminAppointmentMutations.updateStatus(),
 		onSuccess: (appointment) => {
 			void queryClient.invalidateQueries({
 				queryKey: adminAppointmentKeys.lists(),

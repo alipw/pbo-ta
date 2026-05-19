@@ -81,6 +81,19 @@ public class AppointmentService {
     }
 
     @Transactional
+    public AppointmentResponse updateStatus(
+            Long appointmentId,
+            AppointmentStatus status,
+            String cancelledReason) {
+        Appointment appointment = findById(appointmentId);
+
+        appointment.setStatus(status);
+        appointment.setCancelledReason(status == AppointmentStatus.DIBATALKAN ? cancelledReason : null);
+
+        return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    @Transactional
     public void deleteById(Long appointmentId) {
         Appointment appointment = findById(appointmentId);
         DoctorSchedule schedule = appointment.getSchedule();
