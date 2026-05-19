@@ -25,26 +25,13 @@ import {
 import { adminDoctorQueries } from "@/api/admin/doctors/queries";
 import type { Doctor, DoctorRequest } from "@/api/admin/doctors/types";
 import { ApiError } from "@/api/client";
+import {
+	AdminDeleteDialog,
+	AdminFormDialog,
+} from "@/components/admin/admin-dialogs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-	AlertDialog,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -219,7 +206,7 @@ function AdminDoctorsPage() {
 			try {
 				await createDoctorMutation.mutateAsync(value);
 				formApi.reset();
-				setFormSuccess("Dokter berhasil ditambahkan.");
+				setIsCreateDialogOpen(false);
 			} catch (error) {
 				setFormError(
 					await getDoctorFormErrorMessage(
@@ -264,7 +251,7 @@ function AdminDoctorsPage() {
 
 			<div className="space-y-4">
 				<div className="flex justify-end">
-					<Dialog
+					<AdminFormDialog
 						open={isCreateDialogOpen}
 						onOpenChange={(open) => {
 							setIsCreateDialogOpen(open);
@@ -274,146 +261,138 @@ function AdminDoctorsPage() {
 								setFormSuccess("");
 							}
 						}}
-					>
-						<DialogTrigger asChild>
+						title="Tambah Dokter"
+						description="Akun dokter baru akan langsung bisa digunakan untuk masuk."
+						trigger={
 							<Button size="lg">
 								<Plus className="size-4" />
 								Tambah Dokter
 							</Button>
-						</DialogTrigger>
-						<DialogContent className="sm:max-w-md">
-							<DialogHeader>
-								<DialogTitle>Tambah Dokter</DialogTitle>
-								<DialogDescription>
-									Akun dokter baru akan langsung bisa digunakan untuk masuk.
-								</DialogDescription>
-							</DialogHeader>
-							<form
-								className="space-y-4"
-								onSubmit={(event) => {
-									event.preventDefault();
-									event.stopPropagation();
-									void form.handleSubmit();
+						}
+					>
+						<form
+							className="space-y-4"
+							onSubmit={(event) => {
+								event.preventDefault();
+								event.stopPropagation();
+								void form.handleSubmit();
+							}}
+						>
+							{formError ? (
+								<Alert variant="destructive">
+									<AlertCircle className="size-4" />
+									<AlertDescription>{formError}</AlertDescription>
+								</Alert>
+							) : null}
+
+							{formSuccess ? (
+								<Alert>
+									<AlertDescription>{formSuccess}</AlertDescription>
+								</Alert>
+							) : null}
+
+							<form.Field
+								name="fullName"
+								validators={{
+									onChange: ({ value }) =>
+										value.trim().length === 0 ? "Nama wajib diisi." : undefined,
 								}}
 							>
-								{formError ? (
-									<Alert variant="destructive">
-										<AlertCircle className="size-4" />
-										<AlertDescription>{formError}</AlertDescription>
-									</Alert>
-								) : null}
+								{(field) => <TextField field={field} label="Nama Lengkap" />}
+							</form.Field>
 
-								{formSuccess ? (
-									<Alert>
-										<AlertDescription>{formSuccess}</AlertDescription>
-									</Alert>
-								) : null}
+							<form.Field
+								name="email"
+								validators={{
+									onChange: ({ value }) => {
+										if (value.trim().length === 0) {
+											return "Email wajib diisi.";
+										}
 
-								<form.Field
-									name="fullName"
-									validators={{
-										onChange: ({ value }) =>
-											value.trim().length === 0
-												? "Nama wajib diisi."
-												: undefined,
-									}}
+										return value.includes("@")
+											? undefined
+											: "Format email tidak valid.";
+									},
+								}}
+							>
+								{(field) => (
+									<TextField
+										field={field}
+										label="Email"
+										type="email"
+										autoComplete="email"
+									/>
+								)}
+							</form.Field>
+
+							<form.Field
+								name="password"
+								validators={{
+									onChange: ({ value }) =>
+										value.length === 0 ? "Password wajib diisi." : undefined,
+								}}
+							>
+								{(field) => (
+									<TextField
+										field={field}
+										label="Password"
+										type="password"
+										autoComplete="new-password"
+									/>
+								)}
+							</form.Field>
+
+							<Separator />
+
+							<form.Field
+								name="specialization"
+								validators={{
+									onChange: ({ value }) =>
+										value.trim().length === 0
+											? "Spesialisasi wajib diisi."
+											: undefined,
+								}}
+							>
+								{(field) => <TextField field={field} label="Spesialisasi" />}
+							</form.Field>
+
+							<form.Field
+								name="licenseNumber"
+								validators={{
+									onChange: ({ value }) =>
+										value.trim().length === 0
+											? "Nomor lisensi wajib diisi."
+											: undefined,
+								}}
+							>
+								{(field) => <TextField field={field} label="Nomor Lisensi" />}
+							</form.Field>
+
+							<DialogFooter className="-mx-4 border-t px-4 pt-4">
+								<form.Subscribe
+									selector={(state) => [state.canSubmit, state.isSubmitting]}
 								>
-									{(field) => <TextField field={field} label="Nama Lengkap" />}
-								</form.Field>
-
-								<form.Field
-									name="email"
-									validators={{
-										onChange: ({ value }) => {
-											if (value.trim().length === 0) {
-												return "Email wajib diisi.";
+									{([canSubmit, isSubmitting]) => (
+										<Button
+											className="w-full"
+											disabled={
+												!canSubmit ||
+												isSubmitting ||
+												createDoctorMutation.isPending
 											}
-
-											return value.includes("@")
-												? undefined
-												: "Format email tidak valid.";
-										},
-									}}
-								>
-									{(field) => (
-										<TextField
-											field={field}
-											label="Email"
-											type="email"
-											autoComplete="email"
-										/>
+											size="lg"
+											type="submit"
+										>
+											<Plus className="size-4" />
+											{isSubmitting || createDoctorMutation.isPending
+												? "Menyimpan..."
+												: "Tambah Dokter"}
+										</Button>
 									)}
-								</form.Field>
-
-								<form.Field
-									name="password"
-									validators={{
-										onChange: ({ value }) =>
-											value.length === 0 ? "Password wajib diisi." : undefined,
-									}}
-								>
-									{(field) => (
-										<TextField
-											field={field}
-											label="Password"
-											type="password"
-											autoComplete="new-password"
-										/>
-									)}
-								</form.Field>
-
-								<Separator />
-
-								<form.Field
-									name="specialization"
-									validators={{
-										onChange: ({ value }) =>
-											value.trim().length === 0
-												? "Spesialisasi wajib diisi."
-												: undefined,
-									}}
-								>
-									{(field) => <TextField field={field} label="Spesialisasi" />}
-								</form.Field>
-
-								<form.Field
-									name="licenseNumber"
-									validators={{
-										onChange: ({ value }) =>
-											value.trim().length === 0
-												? "Nomor lisensi wajib diisi."
-												: undefined,
-									}}
-								>
-									{(field) => <TextField field={field} label="Nomor Lisensi" />}
-								</form.Field>
-
-								<DialogFooter className="-mx-4 border-t px-4 pt-4">
-									<form.Subscribe
-										selector={(state) => [state.canSubmit, state.isSubmitting]}
-									>
-										{([canSubmit, isSubmitting]) => (
-											<Button
-												className="w-full"
-												disabled={
-													!canSubmit ||
-													isSubmitting ||
-													createDoctorMutation.isPending
-												}
-												size="lg"
-												type="submit"
-											>
-												<Plus className="size-4" />
-												{isSubmitting || createDoctorMutation.isPending
-													? "Menyimpan..."
-													: "Tambah Dokter"}
-											</Button>
-										)}
-									</form.Subscribe>
-								</DialogFooter>
-							</form>
-						</DialogContent>
-					</Dialog>
+								</form.Subscribe>
+							</DialogFooter>
+						</form>
+					</AdminFormDialog>
 				</div>
 
 				{editingDoctor ? (
@@ -439,7 +418,7 @@ function AdminDoctorsPage() {
 									doctorId: editingDoctor.id,
 									request: value,
 								});
-								setEditFormSuccess("Dokter berhasil diperbarui.");
+								setEditingDoctor(null);
 							} catch (error) {
 								setEditFormError(
 									await getDoctorFormErrorMessage(
@@ -452,7 +431,7 @@ function AdminDoctorsPage() {
 					/>
 				) : null}
 
-				<AlertDialog
+				<AdminDeleteDialog
 					open={Boolean(deletingDoctor)}
 					onOpenChange={(open) => {
 						if (!open && !deleteDoctorMutation.isPending) {
@@ -460,42 +439,19 @@ function AdminDoctorsPage() {
 							setDeleteError("");
 						}
 					}}
-				>
-					<AlertDialogContent>
-						<AlertDialogHeader>
-							<AlertDialogTitle>Hapus Dokter?</AlertDialogTitle>
-							<AlertDialogDescription>
-								{deletingDoctor
-									? `${deletingDoctor.fullName} akan dihapus dari daftar dokter. Tindakan ini tidak dapat dibatalkan.`
-									: "Dokter ini akan dihapus dari daftar dokter."}
-							</AlertDialogDescription>
-						</AlertDialogHeader>
-
-						{deleteError ? (
-							<Alert variant="destructive">
-								<AlertCircle className="size-4" />
-								<AlertDescription>{deleteError}</AlertDescription>
-							</Alert>
-						) : null}
-
-						<AlertDialogFooter className="-mx-4 border-t px-4 pt-4">
-							<AlertDialogCancel disabled={deleteDoctorMutation.isPending}>
-								Batal
-							</AlertDialogCancel>
-							<Button
-								type="button"
-								variant="destructive"
-								disabled={deleteDoctorMutation.isPending}
-								onClick={() => {
-									void handleDeleteDoctor();
-								}}
-							>
-								<Trash2 className="size-4" />
-								{deleteDoctorMutation.isPending ? "Menghapus..." : "Hapus"}
-							</Button>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialog>
+					title="Hapus Dokter?"
+					description={
+						deletingDoctor
+							? `${deletingDoctor.fullName} akan dihapus dari daftar dokter. Tindakan ini tidak dapat dibatalkan.`
+							: "Dokter ini akan dihapus dari daftar dokter."
+					}
+					error={deleteError}
+					isPending={deleteDoctorMutation.isPending}
+					confirmIcon={<Trash2 className="size-4" />}
+					onConfirm={() => {
+						void handleDeleteDoctor();
+					}}
+				/>
 
 				{doctorsQuery.isPending ? <DoctorTableSkeleton /> : null}
 
@@ -617,132 +573,129 @@ function EditDoctorDialog({
 	});
 
 	return (
-		<Dialog open onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-md">
-				<DialogHeader>
-					<DialogTitle>Edit Dokter</DialogTitle>
-					<DialogDescription>
-						Perbarui data dokter. Masukkan password baru untuk akun ini.
-					</DialogDescription>
-				</DialogHeader>
-				<form
-					className="space-y-4"
-					onSubmit={(event) => {
-						event.preventDefault();
-						event.stopPropagation();
-						void form.handleSubmit();
+		<AdminFormDialog
+			open
+			onOpenChange={onOpenChange}
+			title="Edit Dokter"
+			description="Perbarui data dokter. Masukkan password baru untuk akun ini."
+		>
+			<form
+				className="space-y-4"
+				onSubmit={(event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					void form.handleSubmit();
+				}}
+			>
+				{error ? (
+					<Alert variant="destructive">
+						<AlertCircle className="size-4" />
+						<AlertDescription>{error}</AlertDescription>
+					</Alert>
+				) : null}
+
+				{success ? (
+					<Alert>
+						<AlertDescription>{success}</AlertDescription>
+					</Alert>
+				) : null}
+
+				<form.Field
+					name="fullName"
+					validators={{
+						onChange: ({ value }) =>
+							value.trim().length === 0 ? "Nama wajib diisi." : undefined,
 					}}
 				>
-					{error ? (
-						<Alert variant="destructive">
-							<AlertCircle className="size-4" />
-							<AlertDescription>{error}</AlertDescription>
-						</Alert>
-					) : null}
+					{(field) => <TextField field={field} label="Nama Lengkap" />}
+				</form.Field>
 
-					{success ? (
-						<Alert>
-							<AlertDescription>{success}</AlertDescription>
-						</Alert>
-					) : null}
+				<form.Field
+					name="email"
+					validators={{
+						onChange: ({ value }) => {
+							if (value.trim().length === 0) {
+								return "Email wajib diisi.";
+							}
 
-					<form.Field
-						name="fullName"
-						validators={{
-							onChange: ({ value }) =>
-								value.trim().length === 0 ? "Nama wajib diisi." : undefined,
-						}}
+							return value.includes("@")
+								? undefined
+								: "Format email tidak valid.";
+						},
+					}}
+				>
+					{(field) => (
+						<TextField
+							field={field}
+							label="Email"
+							type="email"
+							autoComplete="email"
+						/>
+					)}
+				</form.Field>
+
+				<form.Field
+					name="password"
+					validators={{
+						onChange: ({ value }) =>
+							value.length === 0 ? "Password wajib diisi." : undefined,
+					}}
+				>
+					{(field) => (
+						<TextField
+							field={field}
+							label="Password"
+							type="password"
+							autoComplete="new-password"
+						/>
+					)}
+				</form.Field>
+
+				<Separator />
+
+				<form.Field
+					name="specialization"
+					validators={{
+						onChange: ({ value }) =>
+							value.trim().length === 0
+								? "Spesialisasi wajib diisi."
+								: undefined,
+					}}
+				>
+					{(field) => <TextField field={field} label="Spesialisasi" />}
+				</form.Field>
+
+				<form.Field
+					name="licenseNumber"
+					validators={{
+						onChange: ({ value }) =>
+							value.trim().length === 0
+								? "Nomor lisensi wajib diisi."
+								: undefined,
+					}}
+				>
+					{(field) => <TextField field={field} label="Nomor Lisensi" />}
+				</form.Field>
+
+				<DialogFooter className="-mx-4 border-t px-4 pt-4">
+					<form.Subscribe
+						selector={(state) => [state.canSubmit, state.isSubmitting]}
 					>
-						{(field) => <TextField field={field} label="Nama Lengkap" />}
-					</form.Field>
-
-					<form.Field
-						name="email"
-						validators={{
-							onChange: ({ value }) => {
-								if (value.trim().length === 0) {
-									return "Email wajib diisi.";
-								}
-
-								return value.includes("@")
-									? undefined
-									: "Format email tidak valid.";
-							},
-						}}
-					>
-						{(field) => (
-							<TextField
-								field={field}
-								label="Email"
-								type="email"
-								autoComplete="email"
-							/>
+						{([canSubmit, isSubmitting]) => (
+							<Button
+								className="w-full"
+								disabled={!canSubmit || isSubmitting || isPending}
+								size="lg"
+								type="submit"
+							>
+								<Pencil className="size-4" />
+								{isSubmitting || isPending ? "Menyimpan..." : "Simpan Dokter"}
+							</Button>
 						)}
-					</form.Field>
-
-					<form.Field
-						name="password"
-						validators={{
-							onChange: ({ value }) =>
-								value.length === 0 ? "Password wajib diisi." : undefined,
-						}}
-					>
-						{(field) => (
-							<TextField
-								field={field}
-								label="Password"
-								type="password"
-								autoComplete="new-password"
-							/>
-						)}
-					</form.Field>
-
-					<Separator />
-
-					<form.Field
-						name="specialization"
-						validators={{
-							onChange: ({ value }) =>
-								value.trim().length === 0
-									? "Spesialisasi wajib diisi."
-									: undefined,
-						}}
-					>
-						{(field) => <TextField field={field} label="Spesialisasi" />}
-					</form.Field>
-
-					<form.Field
-						name="licenseNumber"
-						validators={{
-							onChange: ({ value }) =>
-								value.trim().length === 0
-									? "Nomor lisensi wajib diisi."
-									: undefined,
-						}}
-					>
-						{(field) => <TextField field={field} label="Nomor Lisensi" />}
-					</form.Field>
-
-					<DialogFooter className="-mx-4 border-t px-4 pt-4">
-						<form.Subscribe
-							selector={(state) => [state.canSubmit, state.isSubmitting]}
-						>
-							{([canSubmit, isSubmitting]) => (
-								<Button
-									className="w-full"
-									disabled={!canSubmit || isSubmitting || isPending}
-									size="lg"
-									type="submit"
-								>
-									<Pencil className="size-4" />
-									{isSubmitting || isPending ? "Menyimpan..." : "Simpan Dokter"}
-								</Button>
-							)}
-						</form.Subscribe>
-					</DialogFooter>
-				</form>
-			</DialogContent>
-		</Dialog>
+					</form.Subscribe>
+				</DialogFooter>
+			</form>
+		</AdminFormDialog>
 	);
 }
 

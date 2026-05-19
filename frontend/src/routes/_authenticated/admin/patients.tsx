@@ -23,26 +23,13 @@ import {
 } from "@/api/admin/patients/mutations";
 import { adminPatientQueries } from "@/api/admin/patients/queries";
 import type { Patient, PatientRequest } from "@/api/admin/patients/types";
+import {
+	AdminDeleteDialog,
+	AdminFormDialog,
+} from "@/components/admin/admin-dialogs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-	AlertDialog,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -223,7 +210,7 @@ function AdminPatientsPage() {
 			try {
 				await createPatientMutation.mutateAsync(patientRequestFromForm(value));
 				formApi.reset();
-				setFormSuccess("Pasien berhasil ditambahkan.");
+				setIsCreateDialogOpen(false);
 			} catch {
 				setFormError("Pasien gagal ditambahkan. Periksa data lalu coba lagi.");
 			}
@@ -263,7 +250,7 @@ function AdminPatientsPage() {
 
 			<div className="space-y-4">
 				<div className="flex justify-end">
-					<Dialog
+					<AdminFormDialog
 						open={isCreateDialogOpen}
 						onOpenChange={(open) => {
 							setIsCreateDialogOpen(open);
@@ -273,31 +260,25 @@ function AdminPatientsPage() {
 								setFormSuccess("");
 							}
 						}}
-					>
-						<DialogTrigger asChild>
+						title="Tambah Pasien"
+						description="Akun pasien baru akan langsung bisa digunakan untuk masuk."
+						trigger={
 							<Button size="lg">
 								<Plus className="size-4" />
 								Tambah Pasien
 							</Button>
-						</DialogTrigger>
-						<DialogContent className="sm:max-w-md">
-							<DialogHeader>
-								<DialogTitle>Tambah Pasien</DialogTitle>
-								<DialogDescription>
-									Akun pasien baru akan langsung bisa digunakan untuk masuk.
-								</DialogDescription>
-							</DialogHeader>
-							<PatientForm
-								form={form}
-								error={formError}
-								success={formSuccess}
-								isPending={createPatientMutation.isPending}
-								submitLabel="Tambah Pasien"
-								pendingLabel="Menyimpan..."
-								icon={<Plus className="size-4" />}
-							/>
-						</DialogContent>
-					</Dialog>
+						}
+					>
+						<PatientForm
+							form={form}
+							error={formError}
+							success={formSuccess}
+							isPending={createPatientMutation.isPending}
+							submitLabel="Tambah Pasien"
+							pendingLabel="Menyimpan..."
+							icon={<Plus className="size-4" />}
+						/>
+					</AdminFormDialog>
 				</div>
 
 				{editingPatient ? (
@@ -323,7 +304,7 @@ function AdminPatientsPage() {
 									patientId: editingPatient.id,
 									request: patientRequestFromForm(value),
 								});
-								setEditFormSuccess("Pasien berhasil diperbarui.");
+								setEditingPatient(null);
 							} catch {
 								setEditFormError(
 									"Pasien gagal diperbarui. Periksa data lalu coba lagi.",
@@ -333,7 +314,7 @@ function AdminPatientsPage() {
 					/>
 				) : null}
 
-				<AlertDialog
+				<AdminDeleteDialog
 					open={Boolean(deletingPatient)}
 					onOpenChange={(open) => {
 						if (!open && !deletePatientMutation.isPending) {
@@ -341,42 +322,19 @@ function AdminPatientsPage() {
 							setDeleteError("");
 						}
 					}}
-				>
-					<AlertDialogContent>
-						<AlertDialogHeader>
-							<AlertDialogTitle>Hapus Pasien?</AlertDialogTitle>
-							<AlertDialogDescription>
-								{deletingPatient
-									? `${deletingPatient.fullName} akan dihapus dari daftar pasien. Tindakan ini tidak dapat dibatalkan.`
-									: "Pasien ini akan dihapus dari daftar pasien."}
-							</AlertDialogDescription>
-						</AlertDialogHeader>
-
-						{deleteError ? (
-							<Alert variant="destructive">
-								<AlertCircle className="size-4" />
-								<AlertDescription>{deleteError}</AlertDescription>
-							</Alert>
-						) : null}
-
-						<AlertDialogFooter className="-mx-4 border-t px-4 pt-4">
-							<AlertDialogCancel disabled={deletePatientMutation.isPending}>
-								Batal
-							</AlertDialogCancel>
-							<Button
-								type="button"
-								variant="destructive"
-								disabled={deletePatientMutation.isPending}
-								onClick={() => {
-									void handleDeletePatient();
-								}}
-							>
-								<Trash2 className="size-4" />
-								{deletePatientMutation.isPending ? "Menghapus..." : "Hapus"}
-							</Button>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialog>
+					title="Hapus Pasien?"
+					description={
+						deletingPatient
+							? `${deletingPatient.fullName} akan dihapus dari daftar pasien. Tindakan ini tidak dapat dibatalkan.`
+							: "Pasien ini akan dihapus dari daftar pasien."
+					}
+					error={deleteError}
+					isPending={deletePatientMutation.isPending}
+					confirmIcon={<Trash2 className="size-4" />}
+					onConfirm={() => {
+						void handleDeletePatient();
+					}}
+				/>
 
 				{patientsQuery.isPending ? <PatientTableSkeleton /> : null}
 
@@ -475,25 +433,22 @@ function EditPatientDialog({
 	});
 
 	return (
-		<Dialog open onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-md">
-				<DialogHeader>
-					<DialogTitle>Edit Pasien</DialogTitle>
-					<DialogDescription>
-						Perbarui data pasien. Masukkan password baru untuk akun ini.
-					</DialogDescription>
-				</DialogHeader>
-				<PatientForm
-					form={form}
-					error={error}
-					success={success}
-					isPending={isPending}
-					submitLabel="Simpan Pasien"
-					pendingLabel="Menyimpan..."
-					icon={<Pencil className="size-4" />}
-				/>
-			</DialogContent>
-		</Dialog>
+		<AdminFormDialog
+			open
+			onOpenChange={onOpenChange}
+			title="Edit Pasien"
+			description="Perbarui data pasien. Masukkan password baru untuk akun ini."
+		>
+			<PatientForm
+				form={form}
+				error={error}
+				success={success}
+				isPending={isPending}
+				submitLabel="Simpan Pasien"
+				pendingLabel="Menyimpan..."
+				icon={<Pencil className="size-4" />}
+			/>
+		</AdminFormDialog>
 	);
 }
 

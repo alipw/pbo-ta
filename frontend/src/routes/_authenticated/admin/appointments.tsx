@@ -21,7 +21,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import type { FormEvent, MouseEvent } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import {
 	useCreateAppointmentMutation,
@@ -38,17 +38,20 @@ import type {
 import { adminDoctorQueries } from "@/api/admin/doctors/queries";
 import { adminPatientQueries } from "@/api/admin/patients/queries";
 import { ApiError } from "@/api/client";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-	AlertDialog,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+	AdminDeleteDialog,
+	AdminFormDialog,
+} from "@/components/admin/admin-dialogs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+	Combobox,
+	ComboboxContent,
+	ComboboxEmpty,
+	ComboboxInput,
+	ComboboxItem,
+	ComboboxList,
+} from "@/components/ui/combobox";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -60,15 +63,7 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -257,11 +252,12 @@ function AdminAppointmentsPage() {
 					appointmentId: editingAppointmentId,
 					request,
 				});
-				setFormSuccess("Appointment berhasil diperbarui.");
+				setEditingAppointmentId(null);
+				setIsAppointmentDialogOpen(false);
 			} else {
 				await createAppointmentMutation.mutateAsync(request);
 				setFormValues(defaultAppointmentFormValues());
-				setFormSuccess("Appointment berhasil dibuat.");
+				setIsAppointmentDialogOpen(false);
 			}
 		} catch (error) {
 			setFormError(
@@ -338,7 +334,7 @@ function AdminAppointmentsPage() {
 						</p>
 					</div>
 
-					<Dialog
+					<AdminFormDialog
 						open={isAppointmentDialogOpen}
 						onOpenChange={(open) => {
 							setIsAppointmentDialogOpen(open);
@@ -350,174 +346,168 @@ function AdminAppointmentsPage() {
 								setEditingAppointmentId(null);
 							}
 						}}
-					>
-						<DialogTrigger asChild>
+						title={appointmentDialogTitle}
+						description={appointmentDialogDescription}
+						contentClassName="sm:max-w-2xl"
+						trigger={
 							<Button size="lg" onClick={() => openCreateDialog()}>
 								<Plus className="size-4" />
 								Tambah Appointment
 							</Button>
-						</DialogTrigger>
-						<DialogContent className="sm:max-w-2xl">
-							<DialogHeader>
-								<DialogTitle>{appointmentDialogTitle}</DialogTitle>
-								<DialogDescription>
-									{appointmentDialogDescription}
-								</DialogDescription>
-							</DialogHeader>
+						}
+					>
+						<form className="space-y-4" onSubmit={handleAppointmentSubmit}>
+							{formError ? (
+								<Alert variant="destructive">
+									<AlertCircle className="size-4" />
+									<AlertDescription>{formError}</AlertDescription>
+								</Alert>
+							) : null}
 
-							<form className="space-y-4" onSubmit={handleAppointmentSubmit}>
-								{formError ? (
-									<Alert variant="destructive">
-										<AlertCircle className="size-4" />
-										<AlertDescription>{formError}</AlertDescription>
-									</Alert>
-								) : null}
+							{formSuccess ? (
+								<Alert>
+									<AlertDescription>{formSuccess}</AlertDescription>
+								</Alert>
+							) : null}
 
-								{formSuccess ? (
-									<Alert>
-										<AlertDescription>{formSuccess}</AlertDescription>
-									</Alert>
-								) : null}
-
-								<div className="grid gap-4 md:grid-cols-2">
-									<SelectField
-										id="patientId"
-										label="Pasien"
-										value={formValues.patientId}
-										disabled={patientsQuery.isPending}
-										placeholder="Pilih pasien"
-										options={(patientsQuery.data ?? []).map((patient) => ({
-											value: String(patient.id),
-											label: patient.fullName,
-										}))}
-										onChange={(patientId) =>
-											setFormValues((current) => ({ ...current, patientId }))
-										}
-									/>
-
-									<SelectField
-										id="doctorId"
-										label="Dokter"
-										value={formValues.doctorId}
-										disabled={doctorsQuery.isPending}
-										placeholder="Pilih dokter"
-										options={(doctorsQuery.data ?? []).map((doctor) => ({
-											value: String(doctor.id),
-											label: `${doctor.fullName} - ${doctor.specialization}`,
-										}))}
-										onChange={(doctorId) =>
-											setFormValues((current) => ({ ...current, doctorId }))
-										}
-									/>
-
-									<TextField
-										id="appointmentDate"
-										label="Tanggal Appointment"
-										type="date"
-										value={formValues.appointmentDate}
-										onChange={(appointmentDate) =>
-											setFormValues((current) => ({
-												...current,
-												appointmentDate,
-											}))
-										}
-									/>
-
-									<TextField
-										id="startTime"
-										label="Jam Mulai"
-										type="time"
-										value={formValues.startTime}
-										onChange={(startTime) =>
-											setFormValues((current) => ({ ...current, startTime }))
-										}
-									/>
-
-									<TextField
-										id="endTime"
-										label="Jam Selesai"
-										type="time"
-										value={formValues.endTime}
-										onChange={(endTime) =>
-											setFormValues((current) => ({ ...current, endTime }))
-										}
-									/>
-
-									<TextField
-										id="room"
-										label="Ruangan"
-										value={formValues.room}
-										onChange={(room) =>
-											setFormValues((current) => ({ ...current, room }))
-										}
-									/>
-
-									<TextField
-										id="complaint"
-										label="Keluhan"
-										value={formValues.complaint}
-										onChange={(complaint) =>
-											setFormValues((current) => ({ ...current, complaint }))
-										}
-									/>
-
-									<SelectField
-										id="status"
-										label="Status"
-										value={formValues.status}
-										placeholder="Pilih status"
-										options={appointmentStatuses.map((status) => ({
-											value: status,
-											label: statusLabels[status],
-										}))}
-										onChange={(status) =>
-											setFormValues((current) => ({
-												...current,
-												status: status as AppointmentStatus,
-											}))
-										}
-									/>
-								</div>
-
-								<TextField
-									id="scheduleNotes"
-									label="Catatan Jadwal"
-									value={formValues.scheduleNotes}
-									onChange={(scheduleNotes) =>
-										setFormValues((current) => ({ ...current, scheduleNotes }))
+							<div className="grid gap-4 md:grid-cols-2">
+								<ComboboxField
+									id="patientId"
+									label="Pasien"
+									value={formValues.patientId}
+									disabled={patientsQuery.isPending}
+									placeholder="Pilih pasien"
+									options={(patientsQuery.data ?? []).map((patient) => ({
+										value: String(patient.id),
+										label: patient.fullName,
+									}))}
+									onChange={(patientId) =>
+										setFormValues((current) => ({ ...current, patientId }))
 									}
 								/>
 
-								{formValues.status === "DIBATALKAN" ? (
-									<TextField
-										id="cancelledReason"
-										label="Alasan Pembatalan"
-										value={formValues.cancelledReason}
-										onChange={(cancelledReason) =>
-											setFormValues((current) => ({
-												...current,
-												cancelledReason,
-											}))
-										}
-									/>
-								) : null}
+								<ComboboxField
+									id="doctorId"
+									label="Dokter"
+									value={formValues.doctorId}
+									disabled={doctorsQuery.isPending}
+									placeholder="Pilih dokter"
+									options={(doctorsQuery.data ?? []).map((doctor) => ({
+										value: String(doctor.id),
+										label: `${doctor.fullName} - ${doctor.specialization}`,
+									}))}
+									onChange={(doctorId) =>
+										setFormValues((current) => ({ ...current, doctorId }))
+									}
+								/>
 
-								<DialogFooter className="-mx-4 border-t px-4 pt-4">
-									<Button
-										className="w-full"
-										size="lg"
-										type="submit"
-										disabled={isAppointmentSaving}
-									>
-										<CalendarDays className="size-4" />
-										{isAppointmentSaving
-											? "Menyimpan..."
-											: appointmentDialogTitle}
-									</Button>
-								</DialogFooter>
-							</form>
-						</DialogContent>
-					</Dialog>
+								<TextField
+									id="appointmentDate"
+									label="Tanggal Appointment"
+									type="date"
+									value={formValues.appointmentDate}
+									onChange={(appointmentDate) =>
+										setFormValues((current) => ({
+											...current,
+											appointmentDate,
+										}))
+									}
+								/>
+
+								<TextField
+									id="room"
+									label="Ruangan"
+									value={formValues.room}
+									onChange={(room) =>
+										setFormValues((current) => ({ ...current, room }))
+									}
+								/>
+
+								<TextField
+									id="startTime"
+									label="Jam Mulai"
+									type="time"
+									value={formValues.startTime}
+									onChange={(startTime) =>
+										setFormValues((current) => ({ ...current, startTime }))
+									}
+								/>
+
+								<TextField
+									id="endTime"
+									label="Jam Selesai"
+									type="time"
+									value={formValues.endTime}
+									onChange={(endTime) =>
+										setFormValues((current) => ({ ...current, endTime }))
+									}
+								/>
+
+								<TextField
+									id="complaint"
+									label="Keluhan"
+									value={formValues.complaint}
+									onChange={(complaint) =>
+										setFormValues((current) => ({ ...current, complaint }))
+									}
+								/>
+
+								<ComboboxField
+									id="status"
+									label="Status"
+									value={formValues.status}
+									placeholder="Pilih status"
+									options={appointmentStatuses.map((status) => ({
+										value: status,
+										label: statusLabels[status],
+									}))}
+									onChange={(status) =>
+										setFormValues((current) => ({
+											...current,
+											status: status as AppointmentStatus,
+										}))
+									}
+								/>
+							</div>
+
+							<TextField
+								id="scheduleNotes"
+								label="Catatan Jadwal"
+								value={formValues.scheduleNotes}
+								onChange={(scheduleNotes) =>
+									setFormValues((current) => ({ ...current, scheduleNotes }))
+								}
+							/>
+
+							{formValues.status === "DIBATALKAN" ? (
+								<TextField
+									id="cancelledReason"
+									label="Alasan Pembatalan"
+									value={formValues.cancelledReason}
+									onChange={(cancelledReason) =>
+										setFormValues((current) => ({
+											...current,
+											cancelledReason,
+										}))
+									}
+								/>
+							) : null}
+
+							<DialogFooter className="-mx-4 border-t px-4 pt-4">
+								<Button
+									className="w-full"
+									size="lg"
+									type="submit"
+									disabled={isAppointmentSaving}
+								>
+									<CalendarDays className="size-4" />
+									{isAppointmentSaving
+										? "Menyimpan..."
+										: appointmentDialogTitle}
+								</Button>
+							</DialogFooter>
+						</form>
+					</AdminFormDialog>
 				</section>
 
 				{appointmentsQuery.isError ? (
@@ -591,7 +581,7 @@ function AdminAppointmentsPage() {
 				</ContextMenu>
 			</main>
 
-			<AlertDialog
+			<AdminDeleteDialog
 				open={deleteAppointmentCandidate !== null}
 				onOpenChange={(open) => {
 					if (!open && !isDeletingAppointment) {
@@ -599,42 +589,19 @@ function AdminAppointmentsPage() {
 						setDeleteError("");
 					}
 				}}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Hapus appointment?</AlertDialogTitle>
-						<AlertDialogDescription>
-							{deleteAppointmentCandidate
-								? `Appointment untuk ${deleteAppointmentCandidate.patientName} akan dihapus bersama jadwal dokter yang dibuat dari appointment ini. Tindakan ini tidak dapat dibatalkan.`
-								: "Appointment ini akan dihapus bersama jadwal dokter yang dibuat dari appointment ini."}
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-
-					{deleteError ? (
-						<Alert variant="destructive">
-							<AlertCircle className="size-4" />
-							<AlertDescription>{deleteError}</AlertDescription>
-						</Alert>
-					) : null}
-
-					<AlertDialogFooter className="-mx-4 border-t px-4 pt-4">
-						<AlertDialogCancel disabled={isDeletingAppointment}>
-							Batal
-						</AlertDialogCancel>
-						<Button
-							type="button"
-							variant="destructive"
-							disabled={isDeletingAppointment}
-							onClick={() => {
-								void handleDeleteAppointment();
-							}}
-						>
-							<Trash2 className="size-4" />
-							{isDeletingAppointment ? "Menghapus..." : "Hapus"}
-						</Button>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+				title="Hapus appointment?"
+				description={
+					deleteAppointmentCandidate
+						? `Appointment untuk ${deleteAppointmentCandidate.patientName} akan dihapus bersama jadwal dokter yang dibuat dari appointment ini. Tindakan ini tidak dapat dibatalkan.`
+						: "Appointment ini akan dihapus bersama jadwal dokter yang dibuat dari appointment ini."
+				}
+				error={deleteError}
+				isPending={isDeletingAppointment}
+				confirmIcon={<Trash2 className="size-4" />}
+				onConfirm={() => {
+					void handleDeleteAppointment();
+				}}
+			/>
 		</>
 	);
 }
@@ -862,17 +829,22 @@ async function getApiErrorMessage(error: unknown) {
 	}
 }
 
-type SelectFieldProps = {
+type ComboboxOption = {
+	value: string;
+	label: string;
+};
+
+type ComboboxFieldProps = {
 	id: keyof AppointmentFormValues;
 	label: string;
 	value: string;
 	placeholder: string;
-	options: Array<{ value: string; label: string }>;
+	options: ComboboxOption[];
 	disabled?: boolean;
 	onChange: (value: string) => void;
 };
 
-function SelectField({
+function ComboboxField({
 	id,
 	label,
 	value,
@@ -880,24 +852,42 @@ function SelectField({
 	options,
 	disabled,
 	onChange,
-}: SelectFieldProps) {
+}: ComboboxFieldProps) {
+	const portalContainerRef = useRef<HTMLDivElement>(null);
+	const selectedOption =
+		options.find((option) => option.value === value) ?? null;
+
 	return (
-		<div className="space-y-2">
+		<div ref={portalContainerRef} className="space-y-2">
 			<Label htmlFor={id}>{label}</Label>
-			<select
-				id={id}
-				className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-				value={value}
+			<Combobox<ComboboxOption>
+				items={options}
+				value={selectedOption}
 				disabled={disabled}
-				onChange={(event) => onChange(event.target.value)}
+				itemToStringValue={(option) => option.label}
+				isItemEqualToValue={(itemValue, selectedValue) =>
+					itemValue.value === selectedValue.value
+				}
+				onValueChange={(option) => onChange(option?.value ?? "")}
 			>
-				<option value="">{placeholder}</option>
-				{options.map((option) => (
-					<option key={option.value} value={option.value}>
-						{option.label}
-					</option>
-				))}
-			</select>
+				<ComboboxInput
+					id={id}
+					className="w-full"
+					placeholder={placeholder}
+					disabled={disabled}
+					showClear
+				/>
+				<ComboboxContent container={portalContainerRef}>
+					<ComboboxEmpty>Tidak ada pilihan</ComboboxEmpty>
+					<ComboboxList>
+						{(option: ComboboxOption) => (
+							<ComboboxItem key={option.value} value={option}>
+								{option.label}
+							</ComboboxItem>
+						)}
+					</ComboboxList>
+				</ComboboxContent>
+			</Combobox>
 		</div>
 	);
 }
