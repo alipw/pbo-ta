@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -42,6 +43,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException exception, HttpServletRequest request) {
         return buildResponse(HttpStatus.UNAUTHORIZED, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage(), request.getRequestURI());
     }
 
     private ResponseEntity<ApiError> buildResponse(HttpStatus status, String message, String path) {

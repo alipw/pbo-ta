@@ -45,6 +45,8 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers("/api/v1/admin/**")
                         .hasRole("ADMIN")
+                        .requestMatchers("/api/v1/doctor/**")
+                        .hasRole("DOCTOR")
                         .anyRequest()
                         .denyAll())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

@@ -10,6 +10,8 @@ import com.klinikku.backend.schedule.ScheduleRequest;
 import com.klinikku.backend.schedule.ScheduleService;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +66,14 @@ public class AppointmentService {
         return AppointmentResponse.from(findById(appointmentId));
     }
 
+    @Transactional(readOnly = true)
+    public AppointmentResponse findResponseByIdForDoctor(Long appointmentId, Long doctorId) {
+        Appointment appointment = findById(appointmentId);
+        ensureDoctorOwnsAppointment(appointment, doctorId);
+
+        return AppointmentResponse.from(appointment);
+    }
+
     @Transactional
     public AppointmentResponse create(AppointmentRequest request) {
         Appointment appointment = new Appointment();
@@ -73,8 +83,25 @@ public class AppointmentService {
     }
 
     @Transactional
+    public AppointmentResponse createForDoctor(AppointmentRequest request, Long doctorId) {
+        ensureRequestDoctorMatchesAuthenticatedDoctor(request, doctorId);
+
+        return create(request);
+    }
+
+    @Transactional
     public AppointmentResponse update(Long appointmentId, AppointmentRequest request) {
         Appointment appointment = findById(appointmentId);
+        applyRequest(appointment, request);
+
+        return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    @Transactional
+    public AppointmentResponse updateForDoctor(Long appointmentId, AppointmentRequest request, Long doctorId) {
+        Appointment appointment = findById(appointmentId);
+        ensureDoctorOwnsAppointment(appointment, doctorId);
+        ensureRequestDoctorMatchesAuthenticatedDoctor(request, doctorId);
         applyRequest(appointment, request);
 
         return AppointmentResponse.from(appointmentRepository.save(appointment));
@@ -94,8 +121,36 @@ public class AppointmentService {
     }
 
     @Transactional
+    public AppointmentResponse updateStatusForDoctor(
+            Long appointmentId,
+            Long doctorId,
+            AppointmentStatus status,
+            String cancelledReason) {
+        Appointment appointment = findById(appointmentId);
+        ensureDoctorOwnsAppointment(appointment, doctorId);
+
+        appointment.setStatus(status);
+        appointment.setCancelledReason(status == AppointmentStatus.DIBATALKAN ? cancelledReason : null);
+
+        return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    @Transactional
     public void deleteById(Long appointmentId) {
         Appointment appointment = findById(appointmentId);
+        DoctorSchedule schedule = appointment.getSchedule();
+
+        appointmentRepository.delete(appointment);
+        if (schedule != null) {
+            appointmentRepository.flush();
+            scheduleService.deleteBookedSlot(schedule);
+        }
+    }
+
+    @Transactional
+    public void deleteByIdForDoctor(Long appointmentId, Long doctorId) {
+        Appointment appointment = findById(appointmentId);
+        ensureDoctorOwnsAppointment(appointment, doctorId);
         DoctorSchedule schedule = appointment.getSchedule();
 
         appointmentRepository.delete(appointment);
@@ -134,5 +189,17 @@ public class AppointmentService {
         }
 
         return scheduleService.updateBookedSlot(appointment.getSchedule().getId(), scheduleRequest);
+    }
+
+    private void ensureDoctorOwnsAppointment(Appointment appointment, Long doctorId) {
+        if (!Objects.equals(appointment.getDoctor().getId(), doctorId)) {
+            throw new AccessDeniedException("Doctors can only access their own appointments");
+        }
+    }
+
+    private void ensureRequestDoctorMatchesAuthenticatedDoctor(AppointmentRequest request, Long doctorId) {
+        if (!Objects.equals(request.doctorId(), doctorId)) {
+            throw new AccessDeniedException("Doctors can only manage appointments assigned to themselves");
+        }
     }
 }

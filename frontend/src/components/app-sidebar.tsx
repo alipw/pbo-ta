@@ -53,7 +53,7 @@ const doctorNav: NavGroup[] = [
 		label: "Dokter",
 		items: [
 			{ title: "Jadwal Saya", url: "/doctor", icon: CalendarClock },
-			{ title: "Appointment", url: "/doctor", icon: UserRound },
+			{ title: "Appointment", url: "/doctor/appointments", icon: UserRound },
 			{ title: "Rekam Medis", url: "/doctor", icon: ClipboardPlus },
 		],
 	},
