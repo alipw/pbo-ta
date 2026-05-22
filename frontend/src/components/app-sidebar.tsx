@@ -43,6 +43,7 @@ const adminNav: NavGroup[] = [
 			{ title: "Dokter", url: "/admin/doctors", icon: Stethoscope },
 			{ title: "Pasien", url: "/admin/patients", icon: Users },
 			{ title: "Appointment", url: "/admin/appointments", icon: CalendarDays },
+			{ title: "Jadwal", url: "/admin/schedules", icon: CalendarClock },
 			{ title: "Pembayaran", url: "/admin", icon: CreditCard },
 		],
 	},
