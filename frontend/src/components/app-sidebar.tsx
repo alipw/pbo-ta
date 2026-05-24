@@ -69,7 +69,7 @@ const patientNav: NavGroup[] = [
 		items: [
 			{ title: "Janji Temu", url: "/patient", icon: CalendarPlus },
 			{ title: "Rekam Medis", url: "/patient/records", icon: FileText },
-			{ title: "Pembayaran", url: "/patient", icon: CreditCard },
+			{ title: "Pembayaran", url: "/patient/payments", icon: CreditCard },
 		],
 	},
 ];
