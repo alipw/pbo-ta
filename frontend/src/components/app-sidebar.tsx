@@ -7,7 +7,6 @@ import {
 	CreditCard,
 	FileText,
 	Stethoscope,
-	UserRound,
 	Users,
 } from "lucide-react";
 import { useLogoutMutation } from "@/api/auth/mutations";
@@ -53,8 +52,7 @@ const doctorNav: NavGroup[] = [
 	{
 		label: "Dokter",
 		items: [
-			{ title: "Jadwal Saya", url: "/doctor", icon: CalendarClock },
-			{ title: "Appointment", url: "/doctor/appointments", icon: UserRound },
+			{ title: "Jadwal Saya", url: "/doctor/appointments", icon: CalendarClock },
 			{ title: "Rekam Medis", url: "/doctor", icon: ClipboardPlus },
 		],
 	},
