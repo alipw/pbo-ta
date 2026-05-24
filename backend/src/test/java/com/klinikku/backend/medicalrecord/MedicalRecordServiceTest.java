@@ -47,6 +47,7 @@ class MedicalRecordServiceTest {
 
         assertThat(response.id()).isEqualTo(9L);
         assertThat(response.appointmentId()).isEqualTo(4L);
+        assertThat(response.appointmentDate()).isEqualTo(OffsetDateTime.parse("2026-06-01T09:00:00+07:00"));
         assertThat(response.patientId()).isEqualTo(1L);
         assertThat(response.doctorId()).isEqualTo(2L);
         assertThat(response.diagnosis()).isEqualTo("Migraine");

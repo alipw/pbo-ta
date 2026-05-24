@@ -1,6 +1,7 @@
 export type MedicalRecord = {
 	id: number;
 	appointmentId: number;
+	appointmentDate: string | null;
 	patientId: number;
 	patientName: string;
 	doctorId: number;

@@ -43,6 +43,7 @@ const adminNav: NavGroup[] = [
 			{ title: "Pasien", url: "/admin/patients", icon: Users },
 			{ title: "Appointment", url: "/admin/appointments", icon: CalendarDays },
 			{ title: "Jadwal", url: "/admin/schedules", icon: CalendarClock },
+			{ title: "Rekam Medis", url: "/admin/records", icon: FileText },
 			{ title: "Pembayaran", url: "/admin", icon: CreditCard },
 		],
 	},
@@ -52,8 +53,12 @@ const doctorNav: NavGroup[] = [
 	{
 		label: "Dokter",
 		items: [
-			{ title: "Jadwal Saya", url: "/doctor/appointments", icon: CalendarClock },
-			{ title: "Rekam Medis", url: "/doctor", icon: ClipboardPlus },
+			{
+				title: "Jadwal Saya",
+				url: "/doctor/appointments",
+				icon: CalendarClock,
+			},
+			{ title: "Rekam Medis", url: "/doctor/records", icon: ClipboardPlus },
 		],
 	},
 ];
@@ -63,7 +68,7 @@ const patientNav: NavGroup[] = [
 		label: "Pasien",
 		items: [
 			{ title: "Janji Temu", url: "/patient", icon: CalendarPlus },
-			{ title: "Rekam Medis", url: "/patient", icon: FileText },
+			{ title: "Rekam Medis", url: "/patient/records", icon: FileText },
 			{ title: "Pembayaran", url: "/patient", icon: CreditCard },
 		],
 	},
@@ -76,14 +81,20 @@ const roleNav: Record<UserRole, NavGroup[]> = {
 };
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
-	userName: string;
+	userEmail: string;
 	userRole: UserRole;
 };
 
-export function AppSidebar({ userName, userRole, ...props }: AppSidebarProps) {
+export function AppSidebar({ userEmail, userRole, ...props }: AppSidebarProps) {
 	const navigate = useNavigate();
 	const logoutMutation = useLogoutMutation();
 	const navGroups = roleNav[userRole] ?? [];
+	const roleLabel =
+		userRole === "ADMIN"
+			? "Admin"
+			: userRole === "DOCTOR"
+				? "Dokter"
+				: "Pasien";
 
 	const handleLogout = async () => {
 		try {
@@ -98,7 +109,7 @@ export function AppSidebar({ userName, userRole, ...props }: AppSidebarProps) {
 			<SidebarHeader>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton size="lg" asChild>
+						<SidebarMenuButton size="lg" className="h-14" asChild>
 							<Link
 								to={
 									userRole === "ADMIN"
@@ -111,14 +122,13 @@ export function AppSidebar({ userName, userRole, ...props }: AppSidebarProps) {
 								<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
 									<Stethoscope className="size-4" />
 								</div>
-								<div className="flex flex-col gap-0.5 leading-none">
+								<div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-none">
 									<span className="font-semibold">Klinikku</span>
 									<span className="text-xs text-muted-foreground">
-										{userRole === "ADMIN"
-											? "Admin"
-											: userRole === "DOCTOR"
-												? "Dokter"
-												: "Pasien"}
+										{roleLabel}
+									</span>
+									<span className="truncate text-xs text-muted-foreground">
+										{userEmail}
 									</span>
 								</div>
 							</Link>

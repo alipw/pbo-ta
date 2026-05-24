@@ -1,10 +1,12 @@
 package com.klinikku.backend.medicalrecord;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 
 public record MedicalRecordResponse(
         Long id,
         Long appointmentId,
+        OffsetDateTime appointmentDate,
         Long patientId,
         String patientName,
         Long doctorId,
@@ -19,6 +21,7 @@ public record MedicalRecordResponse(
         return new MedicalRecordResponse(
                 record.getId(),
                 record.getAppointment().getId(),
+                appointmentDate(record),
                 record.getPatient().getId(),
                 record.getPatient().getFullName(),
                 record.getDoctor().getId(),
@@ -28,5 +31,13 @@ public record MedicalRecordResponse(
                 record.getTreatmentNotes(),
                 record.getCreatedAt(),
                 record.getUpdatedAt());
+    }
+
+    private static OffsetDateTime appointmentDate(MedicalRecord record) {
+        if (record.getAppointment().getSchedule() != null) {
+            return record.getAppointment().getSchedule().getStartsAt();
+        }
+
+        return record.getAppointment().getBookedAt();
     }
 }
