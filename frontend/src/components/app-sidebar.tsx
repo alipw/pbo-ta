@@ -44,7 +44,7 @@ const adminNav: NavGroup[] = [
 			{ title: "Appointment", url: "/admin/appointments", icon: CalendarDays },
 			{ title: "Jadwal", url: "/admin/schedules", icon: CalendarClock },
 			{ title: "Rekam Medis", url: "/admin/records", icon: FileText },
-			{ title: "Pembayaran", url: "/admin", icon: CreditCard },
+			{ title: "Pembayaran", url: "/admin/payments", icon: CreditCard },
 		],
 	},
 ];
