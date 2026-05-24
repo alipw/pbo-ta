@@ -8,6 +8,7 @@ import com.klinikku.backend.patient.PatientService;
 import com.klinikku.backend.schedule.DoctorSchedule;
 import com.klinikku.backend.schedule.ScheduleRequest;
 import com.klinikku.backend.schedule.ScheduleService;
+import com.klinikku.backend.schedule.ScheduleStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -74,6 +75,14 @@ public class AppointmentService {
         return AppointmentResponse.from(appointment);
     }
 
+    @Transactional(readOnly = true)
+    public AppointmentResponse findResponseByIdForPatient(Long appointmentId, Long patientId) {
+        Appointment appointment = findById(appointmentId);
+        ensurePatientOwnsAppointment(appointment, patientId);
+
+        return AppointmentResponse.from(appointment);
+    }
+
     @Transactional
     public AppointmentResponse create(AppointmentRequest request) {
         Appointment appointment = new Appointment();
@@ -87,6 +96,31 @@ public class AppointmentService {
         ensureRequestDoctorMatchesAuthenticatedDoctor(request, doctorId);
 
         return create(request);
+    }
+
+    @Transactional
+    public AppointmentResponse createForPatient(Long patientId, PatientAppointmentRequest request) {
+        Patient patient = patientService.findById(patientId);
+        DoctorSchedule schedule = scheduleService.findById(request.scheduleId());
+
+        if (schedule.getStatus() != ScheduleStatus.AVAILABLE) {
+            throw new IllegalArgumentException("Only available schedules can be requested");
+        }
+        if (appointmentRepository.existsByScheduleId(schedule.getId())) {
+            throw new IllegalArgumentException("Schedule already has an appointment");
+        }
+
+        DoctorSchedule bookedSchedule = scheduleService.markAsBooked(schedule);
+
+        Appointment appointment = new Appointment();
+        appointment.setPatient(patient);
+        appointment.setDoctor(bookedSchedule.getDoctor());
+        appointment.setSchedule(bookedSchedule);
+        appointment.setBookedAt(bookedSchedule.getStartsAt());
+        appointment.setStatus(AppointmentStatus.MENUNGGU);
+        appointment.setComplaint(request.complaint());
+
+        return AppointmentResponse.from(appointmentRepository.save(appointment));
     }
 
     @Transactional
@@ -131,6 +165,17 @@ public class AppointmentService {
 
         appointment.setStatus(status);
         appointment.setCancelledReason(status == AppointmentStatus.DIBATALKAN ? cancelledReason : null);
+
+        return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    @Transactional
+    public AppointmentResponse cancelForPatient(Long appointmentId, Long patientId, String cancelledReason) {
+        Appointment appointment = findById(appointmentId);
+        ensurePatientOwnsAppointment(appointment, patientId);
+
+        appointment.setStatus(AppointmentStatus.DIBATALKAN);
+        appointment.setCancelledReason(cancelledReason);
 
         return AppointmentResponse.from(appointmentRepository.save(appointment));
     }
@@ -194,6 +239,12 @@ public class AppointmentService {
     private void ensureDoctorOwnsAppointment(Appointment appointment, Long doctorId) {
         if (!Objects.equals(appointment.getDoctor().getId(), doctorId)) {
             throw new AccessDeniedException("Doctors can only access their own appointments");
+        }
+    }
+
+    private void ensurePatientOwnsAppointment(Appointment appointment, Long patientId) {
+        if (!Objects.equals(appointment.getPatient().getId(), patientId)) {
+            throw new AccessDeniedException("Patients can only access their own appointments");
         }
     }
 

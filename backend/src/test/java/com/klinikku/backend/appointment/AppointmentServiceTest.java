@@ -128,6 +128,69 @@ class AppointmentServiceTest {
     }
 
     @Test
+    void createForPatientBooksExistingAvailableScheduleAndCreatesWaitingAppointment() {
+        OffsetDateTime startsAt = OffsetDateTime.parse("2026-06-04T09:00:00+07:00");
+        Doctor doctor = doctorWithId(2L);
+        Patient patient = patientWithId(1L);
+        DoctorSchedule schedule = scheduleWithId(3L, doctor, startsAt, startsAt.plusMinutes(30), ScheduleStatus.AVAILABLE);
+        PatientAppointmentRequest request = new PatientAppointmentRequest(3L, "Headache");
+
+        when(patientService.findById(1L)).thenReturn(patient);
+        when(scheduleService.findById(3L)).thenReturn(schedule);
+        when(appointmentRepository.existsByScheduleId(3L)).thenReturn(false);
+        when(scheduleService.markAsBooked(schedule)).thenAnswer(invocation -> {
+            schedule.setStatus(ScheduleStatus.BOOKED);
+            return schedule;
+        });
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AppointmentResponse response = appointmentService.createForPatient(1L, request);
+
+        assertThat(response.patientId()).isEqualTo(1L);
+        assertThat(response.doctorId()).isEqualTo(2L);
+        assertThat(response.scheduleId()).isEqualTo(3L);
+        assertThat(response.status()).isEqualTo(AppointmentStatus.MENUNGGU);
+        assertThat(response.bookedAt()).isEqualTo(startsAt);
+        assertThat(response.complaint()).isEqualTo("Headache");
+        verify(scheduleService).markAsBooked(schedule);
+    }
+
+    @Test
+    void createForPatientRejectsScheduleThatAlreadyHasAppointment() {
+        OffsetDateTime startsAt = OffsetDateTime.parse("2026-06-04T09:00:00+07:00");
+        DoctorSchedule schedule =
+                scheduleWithId(3L, doctorWithId(2L), startsAt, startsAt.plusMinutes(30), ScheduleStatus.AVAILABLE);
+
+        when(patientService.findById(1L)).thenReturn(patientWithId(1L));
+        when(scheduleService.findById(3L)).thenReturn(schedule);
+        when(appointmentRepository.existsByScheduleId(3L)).thenReturn(true);
+
+        assertThatThrownBy(() -> appointmentService.createForPatient(1L, new PatientAppointmentRequest(3L, null)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Schedule already has an appointment");
+
+        verify(scheduleService, never()).markAsBooked(any());
+        verify(appointmentRepository, never()).save(any(Appointment.class));
+    }
+
+    @Test
+    void createForPatientRejectsUnavailableSchedule() {
+        OffsetDateTime startsAt = OffsetDateTime.parse("2026-06-04T09:00:00+07:00");
+        DoctorSchedule schedule =
+                scheduleWithId(3L, doctorWithId(2L), startsAt, startsAt.plusMinutes(30), ScheduleStatus.BOOKED);
+
+        when(patientService.findById(1L)).thenReturn(patientWithId(1L));
+        when(scheduleService.findById(3L)).thenReturn(schedule);
+
+        assertThatThrownBy(() -> appointmentService.createForPatient(1L, new PatientAppointmentRequest(3L, null)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Only available schedules can be requested");
+
+        verify(appointmentRepository, never()).existsByScheduleId(any());
+        verify(appointmentRepository, never()).save(any(Appointment.class));
+    }
+
+    @Test
     void updateForDoctorRejectsAppointmentOwnedByAnotherDoctor() {
         OffsetDateTime startsAt = OffsetDateTime.parse("2026-06-05T09:00:00+07:00");
         Doctor owner = doctorWithId(2L);
@@ -188,13 +251,22 @@ class AppointmentServiceTest {
     }
 
     private DoctorSchedule scheduleWithId(Long id, Doctor doctor, OffsetDateTime startsAt, OffsetDateTime endsAt) {
+        return scheduleWithId(id, doctor, startsAt, endsAt, ScheduleStatus.BOOKED);
+    }
+
+    private DoctorSchedule scheduleWithId(
+            Long id,
+            Doctor doctor,
+            OffsetDateTime startsAt,
+            OffsetDateTime endsAt,
+            ScheduleStatus status) {
         DoctorSchedule schedule = new DoctorSchedule();
         ReflectionTestUtils.setField(schedule, "id", id);
         schedule.setDoctor(doctor);
         schedule.setStartsAt(startsAt);
         schedule.setEndsAt(endsAt);
         schedule.setRoom("A101");
-        schedule.setStatus(ScheduleStatus.BOOKED);
+        schedule.setStatus(status);
         schedule.setNotes("Bring previous lab result");
         return schedule;
     }

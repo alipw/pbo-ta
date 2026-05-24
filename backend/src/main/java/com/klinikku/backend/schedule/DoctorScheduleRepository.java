@@ -39,6 +39,37 @@ public interface DoctorScheduleRepository
         });
     }
 
+    default List<DoctorSchedule> findAvailableUnassigned(
+            Long doctorId,
+            OffsetDateTime from,
+            OffsetDateTime to) {
+        return findAll((root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            var subquery = query.subquery(Long.class);
+            var appointment = subquery.from(com.klinikku.backend.appointment.Appointment.class);
+
+            predicates.add(criteriaBuilder.equal(root.get("status"), ScheduleStatus.AVAILABLE));
+
+            if (doctorId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("doctor").get("id"), doctorId));
+            }
+            if (from != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("startsAt"), from));
+            }
+            if (to != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("startsAt"), to));
+            }
+
+            subquery.select(appointment.get("id"))
+                    .where(criteriaBuilder.equal(appointment.get("schedule"), root));
+            predicates.add(criteriaBuilder.not(criteriaBuilder.exists(subquery)));
+
+            query.orderBy(criteriaBuilder.asc(root.get("startsAt")));
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        });
+    }
+
     @Query("""
             select count(schedule) > 0
             from DoctorSchedule schedule

@@ -1,6 +1,7 @@
 package com.klinikku.backend.schedule;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -78,6 +79,28 @@ class ScheduleServiceTest {
                 .hasMessage("Booked schedule cannot be deleted");
 
         verify(scheduleRepository, never()).delete(any(DoctorSchedule.class));
+    }
+
+    @Test
+    void markAsBookedChangesAvailableScheduleToBooked() {
+        DoctorSchedule schedule = scheduleWithIdAndStatus(10L, ScheduleStatus.AVAILABLE);
+        when(scheduleRepository.save(schedule)).thenAnswer(invocation -> invocation.getArgument(0));
+
+        DoctorSchedule bookedSchedule = scheduleService.markAsBooked(schedule);
+
+        assertThat(bookedSchedule.getStatus()).isEqualTo(ScheduleStatus.BOOKED);
+        verify(scheduleRepository).save(schedule);
+    }
+
+    @Test
+    void markAsBookedRejectsUnavailableSchedule() {
+        DoctorSchedule schedule = scheduleWithIdAndStatus(10L, ScheduleStatus.CANCELLED);
+
+        assertThatThrownBy(() -> scheduleService.markAsBooked(schedule))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Only available schedules can be booked");
+
+        verify(scheduleRepository, never()).save(any(DoctorSchedule.class));
     }
 
     private ScheduleRequest availableRequest() {

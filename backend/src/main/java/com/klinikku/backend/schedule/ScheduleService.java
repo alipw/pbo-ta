@@ -40,6 +40,20 @@ public class ScheduleService {
     }
 
     @Transactional(readOnly = true)
+    public List<ScheduleResponse> findAvailableUnassigned(
+            Long doctorId,
+            OffsetDateTime from,
+            OffsetDateTime to) {
+        if (from != null && to != null && to.isBefore(from)) {
+            throw new IllegalArgumentException("Schedule filter end must be after start");
+        }
+
+        return scheduleRepository.findAvailableUnassigned(doctorId, from, to).stream()
+                .map(ScheduleResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public DoctorSchedule findById(Long scheduleId) {
         return scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule", scheduleId));
@@ -63,6 +77,16 @@ public class ScheduleService {
     @Transactional
     public DoctorSchedule updateBookedSlot(Long scheduleId, ScheduleRequest request) {
         return updateSchedule(scheduleId, asBookedRequest(request));
+    }
+
+    @Transactional
+    public DoctorSchedule markAsBooked(DoctorSchedule schedule) {
+        if (schedule.getStatus() != ScheduleStatus.AVAILABLE) {
+            throw new IllegalArgumentException("Only available schedules can be booked");
+        }
+
+        schedule.setStatus(ScheduleStatus.BOOKED);
+        return scheduleRepository.save(schedule);
     }
 
     @Transactional

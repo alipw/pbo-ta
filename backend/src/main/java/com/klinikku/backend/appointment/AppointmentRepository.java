@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long>, JpaSpecificationExecutor<Appointment> {
 
+    boolean existsByScheduleId(Long scheduleId);
+
     default List<Appointment> findByFilters(
             Long patientId,
             Long doctorId,
