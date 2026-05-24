@@ -7,6 +7,11 @@ import java.time.OffsetDateTime;
 public record PaymentResponse(
         Long id,
         Long appointmentId,
+        OffsetDateTime appointmentDate,
+        Long patientId,
+        String patientName,
+        Long doctorId,
+        String doctorName,
         BigDecimal amount,
         PaymentStatus status,
         PaymentMethodType methodType,
@@ -26,6 +31,11 @@ public record PaymentResponse(
         return new PaymentResponse(
                 payment.getId(),
                 payment.getAppointment().getId(),
+                appointmentDate(payment),
+                payment.getAppointment().getPatient().getId(),
+                payment.getAppointment().getPatient().getFullName(),
+                payment.getAppointment().getDoctor().getId(),
+                payment.getAppointment().getDoctor().getFullName(),
                 payment.getAmount(),
                 payment.getStatus(),
                 payment.getMethodType(),
@@ -34,5 +44,13 @@ public record PaymentResponse(
                 payment.getPaidAt(),
                 payment.getCreatedAt(),
                 payment.getUpdatedAt());
+    }
+
+    private static OffsetDateTime appointmentDate(Payment payment) {
+        if (payment.getAppointment().getSchedule() != null) {
+            return payment.getAppointment().getSchedule().getStartsAt();
+        }
+
+        return payment.getAppointment().getBookedAt();
     }
 }
